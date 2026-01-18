@@ -225,9 +225,11 @@ export function MemberList({ members, projectId, onMembersChange }: MemberListPr
                   <div className="px-6 py-8 text-center text-gray-500">Loading users...</div>
                 ) : filteredUsers.length === 0 ? (
                   <div className="px-6 py-8 text-center text-gray-500">
-                    {availableUsers.length === 0
-                      ? 'All users are already members of this project'
-                      : 'No users found matching your search'
+                    {searchQuery
+                      ? 'No users found matching your search'
+                      : allUsers.length <= 1
+                        ? 'No other users to add. Invite users from the Users page first.'
+                        : 'All users are already members of this project'
                     }
                   </div>
                 ) : (
