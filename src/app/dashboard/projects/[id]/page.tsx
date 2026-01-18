@@ -146,7 +146,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
@@ -157,11 +157,11 @@ export default function ProjectPage({ params }: ProjectPageProps) {
             Projects
           </Link>
         </div>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{project.name}</h1>
             {formatAddress() && (
-              <p className="text-gray-600 mt-1 underline decoration-gray-400 underline-offset-2">
+              <p className="text-gray-600 mt-1 underline decoration-gray-400 underline-offset-2 text-sm sm:text-base">
                 {formatAddress()}
               </p>
             )}
@@ -172,22 +172,23 @@ export default function ProjectPage({ params }: ProjectPageProps) {
               Add Labels
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={handleArchiveProject}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-3 sm:px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
             >
               {project.is_archived ? 'Unarchive' : 'Archive'}
             </button>
             {activeTab === 'photos' && (
               <button
                 onClick={() => setShowUpload(true)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-blue-700"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add Photos
+                <span className="hidden sm:inline">Add Photos</span>
+                <span className="sm:hidden">Add</span>
               </button>
             )}
           </div>
@@ -195,8 +196,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-8">
+      <div className="border-b border-gray-200 mb-6 -mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+        <nav className="flex gap-4 sm:gap-8 min-w-max">
           <button
             onClick={() => setActiveTab('photos')}
             className={`pb-4 text-sm font-medium border-b-2 cursor-pointer ${

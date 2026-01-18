@@ -449,7 +449,7 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
   }
 
   return (
-    <div className="fixed inset-0 left-64 flex flex-col bg-gray-100 z-10">
+    <div className="fixed inset-0 lg:left-64 flex flex-col bg-gray-100 z-10">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
         <div className="flex items-center gap-2 text-gray-600">

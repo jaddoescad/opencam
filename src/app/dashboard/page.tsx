@@ -69,34 +69,35 @@ export default function DashboardPage() {
   )
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Projects</h1>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-blue-700 text-sm sm:text-base"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          New Project
+          <span className="hidden sm:inline">New Project</span>
+          <span className="sm:hidden">New</span>
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      <div className="flex flex-col gap-4 mb-6">
         <div className="flex-1">
           <input
             type="text"
             placeholder="Search projects..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 text-sm font-medium rounded-md ${
+            className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${
               filter === 'all'
                 ? 'bg-gray-900 text-white'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -106,7 +107,7 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={() => setFilter('my')}
-            className={`px-4 py-2 text-sm font-medium rounded-md ${
+            className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${
               filter === 'my'
                 ? 'bg-gray-900 text-white'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -116,7 +117,7 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={() => setFilter('archived')}
-            className={`px-4 py-2 text-sm font-medium rounded-md ${
+            className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap ${
               filter === 'archived'
                 ? 'bg-gray-900 text-white'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
