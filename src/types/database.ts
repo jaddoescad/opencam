@@ -131,3 +131,13 @@ export type ChecklistItemPhoto = {
   storage_path: string
   created_at: string
 }
+
+export type ChecklistItemQuestion = {
+  id: string
+  checklist_item_id: string
+  question: string
+  response: string | null
+  question_type: 'text'
+  position: number
+  created_at: string
+}
