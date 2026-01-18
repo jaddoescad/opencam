@@ -207,10 +207,10 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black/50" onClick={handleClose} />
-      <div className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none">
-        <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain pointer-events-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6 my-8">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Create New Project</h2>
 
           <form onSubmit={handleSubmit}>
