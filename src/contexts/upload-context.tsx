@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
 
 interface UploadContextType {
   projectId: string | null
@@ -12,12 +12,16 @@ interface UploadContextType {
 const UploadContext = createContext<UploadContextType | null>(null)
 
 export function UploadProvider({ children }: { children: ReactNode }) {
-  const [projectId, setProjectId] = useState<string | null>(null)
+  const [projectId, setProjectIdState] = useState<string | null>(null)
   const [onPhotosUploaded, setOnPhotosUploadedState] = useState<(() => void) | null>(null)
 
-  const setOnPhotosUploaded = (handler: (() => void) | null) => {
+  const setProjectId = useCallback((id: string | null) => {
+    setProjectIdState(id)
+  }, [])
+
+  const setOnPhotosUploaded = useCallback((handler: (() => void) | null) => {
     setOnPhotosUploadedState(() => handler)
-  }
+  }, [])
 
   return (
     <UploadContext.Provider value={{ projectId, setProjectId, onPhotosUploaded, setOnPhotosUploaded }}>

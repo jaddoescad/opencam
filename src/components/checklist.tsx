@@ -20,6 +20,28 @@ export function ChecklistList({ checklists, projectId, onChecklistsChange }: Che
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 
+  // Restore selected checklist from sessionStorage on mount
+  useEffect(() => {
+    const savedChecklistId = sessionStorage.getItem('selectedChecklistId')
+    if (savedChecklistId) {
+      const checklist = checklists.find(c => c.id === savedChecklistId)
+      if (checklist) {
+        setSelectedChecklist(checklist)
+      }
+      sessionStorage.removeItem('selectedChecklistId')
+    }
+  }, [checklists])
+
+  const selectChecklist = (checklist: Checklist) => {
+    sessionStorage.setItem('selectedChecklistId', checklist.id)
+    setSelectedChecklist(checklist)
+  }
+
+  const deselectChecklist = () => {
+    sessionStorage.removeItem('selectedChecklistId')
+    setSelectedChecklist(null)
+  }
+
   const handleCreateChecklist = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -69,10 +91,10 @@ export function ChecklistList({ checklists, projectId, onChecklistsChange }: Che
     return (
       <ChecklistDetailView
         checklist={selectedChecklist}
-        onBack={() => setSelectedChecklist(null)}
+        onBack={deselectChecklist}
         onDelete={() => {
           handleDeleteChecklist(selectedChecklist.id)
-          setSelectedChecklist(null)
+          deselectChecklist()
         }}
         onChecklistChange={onChecklistsChange}
       />
@@ -108,7 +130,7 @@ export function ChecklistList({ checklists, projectId, onChecklistsChange }: Che
             <ChecklistCard
               key={checklist.id}
               checklist={checklist}
-              onClick={() => setSelectedChecklist(checklist)}
+              onClick={() => selectChecklist(checklist)}
               onDelete={() => handleDeleteChecklist(checklist.id)}
             />
           ))}
@@ -916,19 +938,25 @@ function ChecklistFieldItem({ item, editMode, onToggle, onUpdate, onDelete }: Ch
 
           {/* Text Response - show button or response */}
           {item.field_type === 'text' && (
-            <div className="mt-2">
+            <div className="mt-3">
               {item.response ? (
                 <div
-                  onClick={() => router.push(`/dashboard/checklist-response/${item.id}`)}
-                  className="p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/dashboard/checklist-response/${item.id}`)
+                  }}
+                  className="p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 border border-gray-200"
                 >
                   <p className="text-sm text-gray-700">{item.response}</p>
                   <p className="text-xs text-blue-600 mt-1">Tap to edit</p>
                 </div>
               ) : (
                 <button
-                  onClick={() => router.push(`/dashboard/checklist-response/${item.id}`)}
-                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/dashboard/checklist-response/${item.id}`)
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md text-sm font-medium cursor-pointer border border-blue-200"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -982,8 +1010,8 @@ function ChecklistFieldItem({ item, editMode, onToggle, onUpdate, onDelete }: Ch
           )}
 
           {/* Upload Photos Button - always visible */}
-          <div className="mt-2">
-            <label className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 cursor-pointer">
+          <div className="mt-3">
+            <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-md text-sm font-medium cursor-pointer border border-gray-200">
               <input
                 type="file"
                 accept="image/*"

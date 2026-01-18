@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -32,15 +32,16 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   const supabase = createClient()
   const { setProjectId, setOnPhotosUploaded } = useUpload()
 
-  const fetchPhotos = async () => {
-    const { data } = await supabase
+  const fetchPhotos = useCallback(async () => {
+    const supabaseClient = createClient()
+    const { data } = await supabaseClient
       .from('photos')
       .select('*')
       .eq('project_id', id)
       .order('created_at', { ascending: false })
 
     if (data) setPhotos(data)
-  }
+  }, [id])
 
   // Register project ID and callback for mobile camera button
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       setProjectId(null)
       setOnPhotosUploaded(null)
     }
-  }, [id, setProjectId, setOnPhotosUploaded])
+  }, [id, fetchPhotos, setProjectId, setOnPhotosUploaded])
 
   useEffect(() => {
     fetchProject()
