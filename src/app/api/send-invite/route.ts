@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as postmark from 'postmark'
 
-const client = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN!)
-
 export async function POST(request: NextRequest) {
   try {
+    const client = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN || '')
     const { email, inviterName, inviteLink, role } = await request.json()
 
     if (!email || !inviteLink) {
