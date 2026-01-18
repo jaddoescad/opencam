@@ -573,26 +573,6 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
                 <span className="text-sm text-gray-700">Hide Completed Fields</span>
               </button>
             </div>
-
-            {/* Add Field Button (top level) */}
-            {editMode && (
-              <button
-                onClick={() => {
-                  if (sections.length > 0) {
-                    addField(sections[0])
-                  } else {
-                    addSection()
-                  }
-                }}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium cursor-pointer mt-4"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" strokeWidth={2} />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v8m-4-4h8" />
-                </svg>
-                Add Field
-              </button>
-            )}
           </div>
 
           {/* Sections */}
@@ -621,7 +601,7 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </button>
-                      {editingSection === section ? (
+                      {editMode && editingSection === section ? (
                         <input
                           type="text"
                           defaultValue={section}
@@ -637,7 +617,10 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
                           className="text-lg font-semibold text-gray-900 border-b-2 border-blue-500 outline-none bg-transparent"
                         />
                       ) : (
-                        <span className="text-lg font-semibold text-gray-900">
+                        <span
+                          onClick={() => editMode && setEditingSection(section)}
+                          className={`text-lg font-semibold text-gray-900 ${editMode ? 'cursor-pointer hover:text-blue-600' : ''}`}
+                        >
                           {section}
                         </span>
                       )}
@@ -648,48 +631,22 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => addField(section)}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+                          className="p-1.5 text-blue-500 hover:text-blue-700 cursor-pointer"
                           title="Add field"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                           </svg>
                         </button>
-                        <div className="relative">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowSectionMenu(showSectionMenu === section ? null : section)
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                            </svg>
-                          </button>
-                          {showSectionMenu === section && (
-                            <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                              <button
-                                onClick={() => {
-                                  setEditingSection(section)
-                                  setShowSectionMenu(null)
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                              >
-                                Rename Section
-                              </button>
-                              <button
-                                onClick={() => {
-                                  deleteSection(section)
-                                  setShowSectionMenu(null)
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 cursor-pointer"
-                              >
-                                Delete Section
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          onClick={() => deleteSection(section)}
+                          className="p-1.5 text-red-400 hover:text-red-600 cursor-pointer"
+                          title="Delete section"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -757,7 +714,6 @@ interface ChecklistFieldItemProps {
 function ChecklistFieldItem({ item, editMode, onToggle, onUpdate, onDelete }: ChecklistFieldItemProps) {
   const [editingTitle, setEditingTitle] = useState(false)
   const [content, setContent] = useState(item.content)
-  const [showEditOptions, setShowEditOptions] = useState(false)
   const [photos, setPhotos] = useState<ChecklistItemPhoto[]>([])
   const [uploading, setUploading] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
@@ -871,7 +827,7 @@ function ChecklistFieldItem({ item, editMode, onToggle, onUpdate, onDelete }: Ch
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="bg-white rounded-lg border border-gray-200 p-4 group/field">
       <div className="flex items-start gap-3">
         {/* Completion Checkbox */}
         <button
@@ -894,6 +850,23 @@ function ChecklistFieldItem({ item, editMode, onToggle, onUpdate, onDelete }: Ch
         </button>
 
         <div className="flex-1">
+
+        {/* Delete button - only in edit mode, show on hover */}
+        {editMode && (
+          <button
+            onClick={() => {
+              if (confirm('Are you sure you want to delete this field?')) {
+                onDelete()
+              }
+            }}
+            className="float-right p-1 text-red-400 hover:text-red-600 cursor-pointer opacity-0 group-hover/field:opacity-100 transition-opacity"
+            title="Delete field"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        )}
           {/* Field Title */}
           {editMode && editingTitle ? (
             <input
@@ -925,8 +898,8 @@ function ChecklistFieldItem({ item, editMode, onToggle, onUpdate, onDelete }: Ch
             <p className="text-sm text-gray-500 mt-1">{item.notes}</p>
           )}
 
-          {/* Text Response - show button or response */}
-          {item.field_type === 'text' && (
+          {/* Text Response - show button or response (hide in edit mode) */}
+          {!editMode && item.field_type === 'text' && (
             <div className="mt-3">
               {item.response ? (
                 <div
@@ -987,8 +960,8 @@ function ChecklistFieldItem({ item, editMode, onToggle, onUpdate, onDelete }: Ch
             </div>
           )}
 
-          {/* Photos Required Indicator */}
-          {item.photos_required && photos.length === 0 && (
+          {/* Photos Required Indicator (hide in edit mode) */}
+          {!editMode && item.photos_required && photos.length === 0 && (
             <div className="mt-2 flex items-center gap-1 text-sm text-orange-600">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -998,78 +971,49 @@ function ChecklistFieldItem({ item, editMode, onToggle, onUpdate, onDelete }: Ch
             </div>
           )}
 
-          {/* Upload Photos Button - always visible */}
-          <div className="mt-3">
-            <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-md text-sm font-medium cursor-pointer border border-gray-200">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="hidden"
-                disabled={uploading}
-              />
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {uploading ? 'Uploading...' : 'Add Photos'}
-            </label>
-          </div>
+          {/* Upload Photos Button - only when not editing */}
+          {!editMode && (
+            <div className="mt-3">
+              <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-md text-sm font-medium cursor-pointer border border-gray-200">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  disabled={uploading}
+                />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {uploading ? 'Uploading...' : 'Add Photos'}
+              </label>
+            </div>
+          )}
 
-          {/* Edit mode only options */}
+          {/* Edit mode options - shown inline */}
           {editMode && (
-            <>
-              {/* Edit Options Toggle */}
-              <div className="mt-2 flex items-center gap-2">
-                <button
-                  onClick={() => setShowEditOptions(!showEditOptions)}
-                  className="text-sm text-gray-500 hover:text-gray-700 cursor-pointer"
-                >
-                  {showEditOptions ? 'Hide options' : 'More options...'}
-                </button>
-                <button
-                  onClick={onDelete}
-                  className="text-sm text-red-500 hover:text-red-700 cursor-pointer"
-                >
-                  Delete
-                </button>
-              </div>
-
-              {/* Expanded Edit Options */}
-              {showEditOptions && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-md space-y-2">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Notes/Instructions</label>
-                    <input
-                      type="text"
-                      defaultValue={item.notes || ''}
-                      onBlur={(e) => onUpdate({ notes: e.target.value || null })}
-                      placeholder="Add notes or instructions..."
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 placeholder-gray-400"
-                    />
-                  </div>
-                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={item.field_type === 'text'}
-                      onChange={(e) => onUpdate({ field_type: e.target.checked ? 'text' : 'checkbox' })}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                    Requires Text Response
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={item.photos_required || false}
-                      onChange={(e) => onUpdate({ photos_required: e.target.checked })}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                    Photos Required
-                  </label>
-                </div>
-              )}
-            </>
+            <div className="mt-3 flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={item.field_type === 'text'}
+                  onChange={(e) => onUpdate({ field_type: e.target.checked ? 'text' : 'checkbox' })}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                Requires Text Response
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={item.photos_required || false}
+                  onChange={(e) => onUpdate({ photos_required: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                Photos Required
+              </label>
+            </div>
           )}
         </div>
       </div>
