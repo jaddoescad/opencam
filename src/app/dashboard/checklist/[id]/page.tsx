@@ -140,7 +140,7 @@ export default function ChecklistPage({ params }: ChecklistPageProps) {
   return (
     <div className="bg-gray-100">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center gap-2 text-gray-600">
           <button
             onClick={() => router.push(`/dashboard/projects/${checklist.project_id}`)}
@@ -155,10 +155,10 @@ export default function ChecklistPage({ params }: ChecklistPageProps) {
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto py-8 px-6">
+      <div className="max-w-4xl mx-auto py-4 sm:py-8 px-2 sm:px-6">
         <div className="bg-white rounded-lg shadow-sm">
           {/* Title and Progress Header */}
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <div className="flex items-start gap-4">
               {/* Progress Circle */}
               <div className="relative w-14 h-14 flex-shrink-0">
@@ -237,7 +237,7 @@ export default function ChecklistPage({ params }: ChecklistPageProps) {
 
             return (
               <div key={section} className="border-t border-gray-200">
-                <div className="px-6 py-4">
+                <div className="px-3 sm:px-6 py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <button
@@ -398,7 +398,7 @@ function ChecklistFieldItem({ item, onToggle }: ChecklistFieldItemProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5">
+    <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-5">
       <div className="flex items-start gap-3">
         {/* Completion Checkbox */}
         <button
