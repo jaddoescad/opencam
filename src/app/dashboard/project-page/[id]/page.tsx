@@ -85,7 +85,7 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
   }
 
   return (
-    <div className="bg-gray-100 pb-8">
+    <div className="bg-gray-100 pb-36 sm:pb-8">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
