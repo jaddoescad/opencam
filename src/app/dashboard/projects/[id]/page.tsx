@@ -145,7 +145,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   }
 
   return (
-    <div className="p-4 sm:p-6 pb-28 sm:pb-6">
+    <div className="p-4 sm:p-6 pb-36 sm:pb-6">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
