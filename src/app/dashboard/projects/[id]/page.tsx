@@ -111,7 +111,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-64">
         <div className="text-gray-500">Loading project...</div>
       </div>
     )
@@ -119,7 +119,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   if (!project) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-64">
         <div className="text-gray-500">Project not found</div>
       </div>
     )
@@ -146,7 +146,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   }
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="p-4 sm:p-6 pb-20 sm:pb-6">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
