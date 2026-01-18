@@ -249,7 +249,6 @@ interface ChecklistDetailViewProps {
 function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }: ChecklistDetailViewProps) {
   const [items, setItems] = useState<ChecklistItem[]>([])
   const [hideCompleted, setHideCompleted] = useState(false)
-  const [hideAssigned, setHideAssigned] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [editingSection, setEditingSection] = useState<string | null>(null)
@@ -428,7 +427,6 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
   const filterItems = (itemList: ChecklistItem[]) => {
     return itemList.filter(item => {
       if (hideCompleted && item.is_completed) return false
-      if (hideAssigned && item.assigned_to) return false
       return true
     })
   }
@@ -562,19 +560,6 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
                 </div>
                 <span className="text-sm text-gray-700">Hide Completed Fields</span>
               </button>
-              <button
-                onClick={() => setHideAssigned(!hideAssigned)}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <div className={`w-5 h-5 rounded flex items-center justify-center ${hideAssigned ? 'bg-gray-200' : 'bg-gray-100'}`}>
-                  {hideAssigned && (
-                    <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  )}
-                </div>
-                <span className="text-sm text-gray-700">Hide Assigned Fields</span>
-              </button>
             </div>
 
             {/* Add Field Button (top level) */}
@@ -602,7 +587,7 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
           {sections.map((section) => {
             const sectionItems = itemsBySection[section] || []
             const filteredSectionItems = filterItems(sectionItems)
-            if (filteredSectionItems.length === 0 && (hideCompleted || hideAssigned)) return null
+            if (filteredSectionItems.length === 0 && hideCompleted) return null
 
             const isCollapsed = collapsedSections.has(section)
 
