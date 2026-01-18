@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -20,12 +20,7 @@ export default function ChecklistEditPage({ params }: ChecklistEditPageProps) {
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchChecklist()
-    fetchItems()
-  }, [id])
-
-  const fetchChecklist = async () => {
+  const fetchChecklist = useCallback(async () => {
     const { data, error } = await supabase
       .from('checklists')
       .select('*')
@@ -39,9 +34,9 @@ export default function ChecklistEditPage({ params }: ChecklistEditPageProps) {
 
     setChecklist(data)
     setLoading(false)
-  }
+  }, [id, supabase, router])
 
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     const { data } = await supabase
       .from('checklist_items')
       .select('*')
@@ -52,7 +47,14 @@ export default function ChecklistEditPage({ params }: ChecklistEditPageProps) {
     if (data) {
       setItems(data)
     }
-  }
+  }, [id, supabase])
+
+  useEffect(() => {
+    void (async () => {
+      await fetchChecklist()
+      await fetchItems()
+    })()
+  }, [fetchChecklist, fetchItems])
 
   const addField = async (category: string) => {
     const categoryItems = items.filter(i => i.category === category)
@@ -227,7 +229,7 @@ export default function ChecklistEditPage({ params }: ChecklistEditPageProps) {
           <div className="p-4 sm:p-6">
             <div className="flex items-start gap-4">
               {/* Progress Circle */}
-              <div className="relative w-14 h-14 flex-shrink-0">
+              <div className="relative w-14 h-14 shrink-0">
                 <svg className="w-14 h-14 transform -rotate-90">
                   <circle
                     cx="28"
@@ -419,12 +421,7 @@ function ChecklistEditFieldItem({ item, onUpdate, onDelete }: ChecklistEditField
   const [newQuestionText, setNewQuestionText] = useState('')
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchPhotos()
-    fetchQuestions()
-  }, [item.id])
-
-  const fetchPhotos = async () => {
+  const fetchPhotos = useCallback(async () => {
     const { data } = await supabase
       .from('checklist_item_photos')
       .select('*')
@@ -432,9 +429,9 @@ function ChecklistEditFieldItem({ item, onUpdate, onDelete }: ChecklistEditField
       .order('created_at', { ascending: false })
 
     if (data) setPhotos(data)
-  }
+  }, [item.id, supabase])
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = useCallback(async () => {
     const { data } = await supabase
       .from('checklist_item_questions')
       .select('*')
@@ -442,7 +439,14 @@ function ChecklistEditFieldItem({ item, onUpdate, onDelete }: ChecklistEditField
       .order('position', { ascending: true })
 
     if (data) setQuestions(data)
-  }
+  }, [item.id, supabase])
+
+  useEffect(() => {
+    void (async () => {
+      await fetchPhotos()
+      await fetchQuestions()
+    })()
+  }, [fetchPhotos, fetchQuestions])
 
   const handleSave = () => {
     if (content.trim() && content !== item.content) {
@@ -500,7 +504,7 @@ function ChecklistEditFieldItem({ item, onUpdate, onDelete }: ChecklistEditField
     <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-5 group/field">
       <div className="flex items-start gap-3">
         {/* Checkbox placeholder */}
-        <div className="w-6 h-6 rounded-full border-2 border-gray-300 flex-shrink-0 mt-0.5" />
+        <div className="w-6 h-6 rounded-full border-2 border-gray-300 shrink-0 mt-0.5" />
 
         <div className="flex-1">
           {/* Top right action icons */}

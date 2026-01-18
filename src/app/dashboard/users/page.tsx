@@ -98,7 +98,7 @@ export default function UsersPage() {
               <div key={user.id} className="px-4 sm:px-6 py-4 hover:bg-gray-50">
                 {/* Mobile Layout */}
                 <div className="md:hidden flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium shrink-0">
                     {getInitials(user.full_name, user.email)}
                   </div>
                   <div className="flex-1 min-w-0">

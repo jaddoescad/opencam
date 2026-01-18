@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getInitials, formatRelativeTime } from '@/lib/utils'
 import { useCurrentUser } from '@/hooks'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import type { Profile, ProjectMember } from '@/types/database'
 
 interface MemberListProps {
@@ -19,6 +20,8 @@ export function MemberList({ members, projectId, onMembersChange }: MemberListPr
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [fetchingUsers, setFetchingUsers] = useState(false)
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null)
+  const [removing, setRemoving] = useState(false)
   const supabase = createClient()
   const { user, role: currentUserRole } = useCurrentUser()
 
@@ -100,17 +103,30 @@ export function MemberList({ members, projectId, onMembersChange }: MemberListPr
     setSearchQuery('')
   }
 
-  const handleRemoveMember = async (memberId: string) => {
-    if (!confirm('Are you sure you want to remove this member?')) return
+  const handleRemoveRequest = (memberId: string) => {
+    setMemberToRemove(memberId)
+  }
+
+  const handleRemoveConfirm = async () => {
+    if (!memberToRemove) return
+
+    setRemoving(true)
 
     const { error } = await supabase
       .from('project_members')
       .delete()
-      .eq('id', memberId)
+      .eq('id', memberToRemove)
 
     if (!error) {
+      setMemberToRemove(null)
       onMembersChange()
     }
+
+    setRemoving(false)
+  }
+
+  const handleRemoveCancel = () => {
+    setMemberToRemove(null)
   }
 
   return (
@@ -158,7 +174,7 @@ export function MemberList({ members, projectId, onMembersChange }: MemberListPr
                   Added {formatRelativeTime(member.added_at)}
                 </span>
                 <button
-                  onClick={() => handleRemoveMember(member.id)}
+                  onClick={() => handleRemoveRequest(member.id)}
                   className="text-gray-400 hover:text-red-500"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,6 +300,19 @@ export function MemberList({ members, projectId, onMembersChange }: MemberListPr
           </div>
         </div>
       )}
+
+      {/* Remove Member Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!memberToRemove}
+        title="Remove Member"
+        message="Are you sure you want to remove this member from the project? They will no longer have access to this project."
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={removing}
+        onConfirm={handleRemoveConfirm}
+        onCancel={handleRemoveCancel}
+      />
     </div>
   )
 }

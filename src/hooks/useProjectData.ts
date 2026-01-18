@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Project, Photo, Profile, ProjectMember, Checklist, ProjectPage } from '@/types/database'
+import type { Project, Profile, ProjectMember, Checklist, ProjectPage, PhotoWithUploader } from '@/types/database'
 
 export type MemberWithProfile = ProjectMember & { profile: Profile }
 
 interface UseProjectDataResult {
   project: Project | null
-  photos: Photo[]
+  photos: PhotoWithUploader[]
   members: MemberWithProfile[]
   checklists: Checklist[]
   pages: ProjectPage[]
@@ -23,7 +23,7 @@ interface UseProjectDataResult {
 
 export function useProjectData(projectId: string): UseProjectDataResult {
   const [project, setProject] = useState<Project | null>(null)
-  const [photos, setPhotos] = useState<Photo[]>([])
+  const [photos, setPhotos] = useState<PhotoWithUploader[]>([])
   const [members, setMembers] = useState<MemberWithProfile[]>([])
   const [checklists, setChecklists] = useState<Checklist[]>([])
   const [pages, setPages] = useState<ProjectPage[]>([])
@@ -47,12 +47,15 @@ export function useProjectData(projectId: string): UseProjectDataResult {
     const supabase = createClient()
     const { data, error: photosError } = await supabase
       .from('photos')
-      .select('*')
+      .select(`
+        *,
+        uploader:profiles(*)
+      `)
       .eq('project_id', projectId)
       .order('created_at', { ascending: false })
 
     if (photosError) throw photosError
-    setPhotos(data || [])
+    setPhotos((data as PhotoWithUploader[]) || [])
     return data
   }, [projectId])
 

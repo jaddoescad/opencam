@@ -1,16 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { getInitials, getPhotoUrl } from '@/lib/utils'
 import { useKeyboardNavigation } from '@/hooks'
-import type { Photo, Profile } from '@/types/database'
-
-interface PhotoWithUploader extends Photo {
-  uploader?: Profile | null
-}
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import type { PhotoWithUploader } from '@/types/database'
 
 interface PhotoGridProps {
-  photos: Photo[]
+  photos: PhotoWithUploader[]
   projectId: string
   onPhotosChange: () => void
 }
@@ -72,29 +70,25 @@ function formatTime(dateString: string): string {
 }
 
 export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps) {
-  const [photosWithUploaders, setPhotosWithUploaders] = useState<PhotoWithUploader[]>([])
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoWithUploader | null>(null)
+  const [photoToDelete, setPhotoToDelete] = useState<PhotoWithUploader | null>(null)
   const [deleting, setDeleting] = useState(false)
   const supabase = createClient()
-
-  useEffect(() => {
-    fetchUploaderInfo()
-  }, [photos])
 
   // Keyboard navigation handlers for lightbox
   const navigateToPrevious = useCallback(() => {
     if (!selectedPhoto) return
-    const currentIndex = photosWithUploaders.findIndex(p => p.id === selectedPhoto.id)
-    const prevIndex = currentIndex === 0 ? photosWithUploaders.length - 1 : currentIndex - 1
-    setSelectedPhoto(photosWithUploaders[prevIndex])
-  }, [selectedPhoto, photosWithUploaders])
+    const currentIndex = photos.findIndex(p => p.id === selectedPhoto.id)
+    const prevIndex = currentIndex === 0 ? photos.length - 1 : currentIndex - 1
+    setSelectedPhoto(photos[prevIndex])
+  }, [selectedPhoto, photos])
 
   const navigateToNext = useCallback(() => {
     if (!selectedPhoto) return
-    const currentIndex = photosWithUploaders.findIndex(p => p.id === selectedPhoto.id)
-    const nextIndex = currentIndex === photosWithUploaders.length - 1 ? 0 : currentIndex + 1
-    setSelectedPhoto(photosWithUploaders[nextIndex])
-  }, [selectedPhoto, photosWithUploaders])
+    const currentIndex = photos.findIndex(p => p.id === selectedPhoto.id)
+    const nextIndex = currentIndex === photos.length - 1 ? 0 : currentIndex + 1
+    setSelectedPhoto(photos[nextIndex])
+  }, [selectedPhoto, photos])
 
   const closeLightbox = useCallback(() => {
     setSelectedPhoto(null)
@@ -110,45 +104,19 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
     !!selectedPhoto
   )
 
-  const fetchUploaderInfo = async () => {
-    // Get unique uploader IDs
-    const uploaderIds = [...new Set(photos.map((p) => p.uploaded_by).filter(Boolean))]
-
-    if (uploaderIds.length === 0) {
-      setPhotosWithUploaders(photos)
-      return
-    }
-
-    // Fetch uploader profiles
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('*')
-      .in('id', uploaderIds)
-
-    const profileMap = new Map(profiles?.map((p) => [p.id, p]) || [])
-
-    // Attach uploader info to photos
-    const enrichedPhotos = photos.map((photo) => ({
-      ...photo,
-      uploader: photo.uploaded_by ? profileMap.get(photo.uploaded_by) || null : null,
-    }))
-
-    setPhotosWithUploaders(enrichedPhotos)
+  const handleDeleteRequest = (photo: PhotoWithUploader) => {
+    setPhotoToDelete(photo)
   }
 
-  const getPhotoUrl = (storagePath: string) => {
-    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${storagePath}`
-  }
-
-  const handleDelete = async (photo: PhotoWithUploader) => {
-    if (!confirm('Are you sure you want to delete this photo?')) return
+  const handleDeleteConfirm = async () => {
+    if (!photoToDelete) return
 
     setDeleting(true)
 
     // Delete from storage
     const { error: storageError } = await supabase.storage
       .from('photos')
-      .remove([photo.storage_path])
+      .remove([photoToDelete.storage_path])
 
     if (storageError) {
       console.error('Error deleting from storage:', storageError)
@@ -158,24 +126,19 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
     const { error: dbError } = await supabase
       .from('photos')
       .delete()
-      .eq('id', photo.id)
+      .eq('id', photoToDelete.id)
 
     if (!dbError) {
       setSelectedPhoto(null)
+      setPhotoToDelete(null)
       onPhotosChange()
     }
 
     setDeleting(false)
   }
 
-  const getInitials = (name: string | null): string => {
-    if (!name) return '?'
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
+  const handleDeleteCancel = () => {
+    setPhotoToDelete(null)
   }
 
   if (photos.length === 0) {
@@ -191,7 +154,7 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
     )
   }
 
-  const groupedPhotos = groupPhotosByDate(photosWithUploaders)
+  const groupedPhotos = groupPhotosByDate(photos)
 
   return (
     <>
@@ -256,7 +219,7 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
           </button>
 
           {/* Left Arrow */}
-          {photosWithUploaders.length > 1 && (
+          {photos.length > 1 && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -271,7 +234,7 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
           )}
 
           {/* Right Arrow */}
-          {photosWithUploaders.length > 1 && (
+          {photos.length > 1 && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -308,23 +271,36 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
               </div>
               <div className="flex items-center gap-4">
                 {/* Photo counter */}
-                {photosWithUploaders.length > 1 && (
+                {photos.length > 1 && (
                   <span className="text-sm opacity-75">
-                    {photosWithUploaders.findIndex(p => p.id === selectedPhoto.id) + 1} / {photosWithUploaders.length}
+                    {photos.findIndex(p => p.id === selectedPhoto.id) + 1} / {photos.length}
                   </span>
                 )}
                 <button
-                  onClick={() => handleDelete(selectedPhoto)}
+                  onClick={() => handleDeleteRequest(selectedPhoto)}
                   disabled={deleting}
                   className="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 rounded disabled:opacity-50 cursor-pointer"
                 >
-                  {deleting ? 'Deleting...' : 'Delete'}
+                  Delete
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!photoToDelete}
+        title="Delete Photo"
+        message="Are you sure you want to delete this photo? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </>
   )
 }
