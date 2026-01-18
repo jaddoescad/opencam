@@ -256,7 +256,7 @@ export default function ChecklistTemplatePage({ params }: ChecklistTemplatePageP
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="bg-gray-100 pb-8">
       {/* Top Banner */}
       <div className="bg-blue-50 border-b border-blue-100 px-6 py-3">
         <div className="flex items-center justify-between">

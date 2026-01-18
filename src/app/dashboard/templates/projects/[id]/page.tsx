@@ -175,7 +175,7 @@ export default function ProjectTemplatePage({ params }: ProjectTemplatePageProps
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="bg-gray-50 p-6 pb-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <Link href="/dashboard/templates" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">

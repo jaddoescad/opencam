@@ -70,7 +70,7 @@ export default function ChecklistResponsePage({ params }: ChecklistResponsePageP
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="bg-gray-100 pb-8">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-4">
         <button

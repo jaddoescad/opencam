@@ -13,9 +13,36 @@ interface ProjectPagesListProps {
 export function ProjectPagesList({ pages, projectId, onPagesChange }: ProjectPagesListProps) {
   const [selectedPage, setSelectedPage] = useState<ProjectPage | null>(null)
   const [saving, setSaving] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newPageName, setNewPageName] = useState('')
+  const [creating, setCreating] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const handleCreatePage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newPageName.trim()) return
+
+    setCreating(true)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const { error } = await supabase
+      .from('project_pages')
+      .insert({
+        project_id: projectId,
+        name: newPageName.trim(),
+        content: '',
+        created_by: user?.id,
+      })
+
+    if (!error) {
+      setNewPageName('')
+      setShowCreateModal(false)
+      onPagesChange()
+    }
+    setCreating(false)
+  }
 
   const handleSelectPage = (page: ProjectPage) => {
     setSelectedPage(page)
@@ -78,19 +105,75 @@ export function ProjectPagesList({ pages, projectId, onPagesChange }: ProjectPag
 
   if (pages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-        <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <p className="text-lg font-medium">No pages yet</p>
-        <p className="mt-1">Pages will appear here when you create a project from a template with pages.</p>
-      </div>
+      <>
+        <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+          <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p className="text-lg font-medium">No pages yet</p>
+          <p className="mt-1 text-center">Create a page to add documentation or notes to this project.</p>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="mt-4 flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Page
+          </button>
+        </div>
+
+        {/* Create Page Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <div className="fixed inset-0 bg-black/50" onClick={() => setShowCreateModal(false)} />
+              <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">New Page</h2>
+                <form onSubmit={handleCreatePage}>
+                  <div>
+                    <label htmlFor="pageName" className="block text-sm font-medium text-gray-700">
+                      Page Name
+                    </label>
+                    <input
+                      id="pageName"
+                      type="text"
+                      required
+                      value={newPageName}
+                      onChange={(e) => setNewPageName(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+                      placeholder="e.g., Site Notes, Daily Report"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="mt-6 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateModal(false)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={creating}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                    >
+                      {creating ? 'Creating...' : 'Create'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     )
   }
 
   if (selectedPage) {
     return (
-      <div className="-m-6 min-h-screen bg-gray-100">
+      <div className="-m-6 bg-gray-100 pb-8">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-6 py-3">
           <div className="flex items-center justify-between">
@@ -218,6 +301,15 @@ export function ProjectPagesList({ pages, projectId, onPagesChange }: ProjectPag
     <div>
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium text-gray-900">Project Pages</h3>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm cursor-pointer"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          New Page
+        </button>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm divide-y">
@@ -252,6 +344,51 @@ export function ProjectPagesList({ pages, projectId, onPagesChange }: ProjectPag
           </div>
         ))}
       </div>
+
+      {/* Create Page Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setShowCreateModal(false)} />
+            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">New Page</h2>
+              <form onSubmit={handleCreatePage}>
+                <div>
+                  <label htmlFor="pageNameList" className="block text-sm font-medium text-gray-700">
+                    Page Name
+                  </label>
+                  <input
+                    id="pageNameList"
+                    type="text"
+                    required
+                    value={newPageName}
+                    onChange={(e) => setNewPageName(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+                    placeholder="e.g., Site Notes, Daily Report"
+                    autoFocus
+                  />
+                </div>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                  >
+                    {creating ? 'Creating...' : 'Create'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
