@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -9,6 +9,7 @@ import { PhotoUpload } from '@/components/photo-upload'
 import { MemberList } from '@/components/member-list'
 import { ChecklistList } from '@/components/checklist'
 import { ProjectPagesList } from '@/components/project-pages-list'
+import { useUpload } from '@/contexts/upload-context'
 import type { Project, Photo, Profile, ProjectMember, Checklist, ProjectPage } from '@/types/database'
 
 type Tab = 'photos' | 'members' | 'checklists' | 'pages'
@@ -29,6 +30,17 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   const [showUpload, setShowUpload] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { setUploadHandler } = useUpload()
+
+  // Register upload handler for mobile camera button
+  const openUpload = useCallback(() => {
+    setShowUpload(true)
+  }, [])
+
+  useEffect(() => {
+    setUploadHandler(openUpload)
+    return () => setUploadHandler(null)
+  }, [setUploadHandler, openUpload])
 
   useEffect(() => {
     fetchProject()
