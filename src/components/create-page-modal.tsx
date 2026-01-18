@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import type { PageTemplate } from '@/types/database'
 
 interface CreatePageModalProps {
   isOpen: boolean
@@ -14,8 +15,37 @@ interface CreatePageModalProps {
 export function CreatePageModal({ isOpen, projectId, onClose, onCreated }: CreatePageModalProps) {
   const [pageName, setPageName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [templates, setTemplates] = useState<PageTemplate[]>([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchTemplates()
+    }
+  }, [isOpen])
+
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true)
+    const { data } = await supabase
+      .from('page_templates')
+      .select('*')
+      .order('name')
+    if (data) setTemplates(data)
+    setLoadingTemplates(false)
+  }
+
+  const handleTemplateChange = (templateId: string | null) => {
+    setSelectedTemplateId(templateId)
+    if (templateId) {
+      const template = templates.find(t => t.id === templateId)
+      if (template) setPageName(template.name)
+    } else {
+      setPageName('')
+    }
+  }
 
   if (!isOpen) return null
 
@@ -26,12 +56,21 @@ export function CreatePageModal({ isOpen, projectId, onClose, onCreated }: Creat
     setCreating(true)
     const { data: { user } } = await supabase.auth.getUser()
 
+    // Get template content if a template was selected
+    let content = ''
+    if (selectedTemplateId) {
+      const template = templates.find(t => t.id === selectedTemplateId)
+      if (template?.content) {
+        content = template.content
+      }
+    }
+
     const { data, error } = await supabase
       .from('project_pages')
       .insert({
         project_id: projectId,
         name: pageName.trim(),
-        content: '',
+        content,
         created_by: user?.id,
       })
       .select()
@@ -39,6 +78,7 @@ export function CreatePageModal({ isOpen, projectId, onClose, onCreated }: Creat
 
     if (!error && data) {
       setPageName('')
+      setSelectedTemplateId(null)
       onCreated()
       onClose()
       // Navigate to the new page
@@ -49,6 +89,7 @@ export function CreatePageModal({ isOpen, projectId, onClose, onCreated }: Creat
 
   const handleClose = () => {
     setPageName('')
+    setSelectedTemplateId(null)
     onClose()
   }
 
@@ -59,6 +100,26 @@ export function CreatePageModal({ isOpen, projectId, onClose, onCreated }: Creat
         <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">New Page</h2>
           <form onSubmit={handleCreatePage}>
+            <div className="mb-4">
+              <label htmlFor="template" className="block text-sm font-medium text-gray-700">
+                Template
+              </label>
+              <select
+                id="template"
+                value={selectedTemplateId || ''}
+                onChange={(e) => handleTemplateChange(e.target.value || null)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
+                disabled={loadingTemplates}
+              >
+                <option value="">Start from scratch</option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label htmlFor="pageName" className="block text-sm font-medium text-gray-700">
                 Page Name
@@ -71,7 +132,6 @@ export function CreatePageModal({ isOpen, projectId, onClose, onCreated }: Creat
                 onChange={(e) => setPageName(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
                 placeholder="e.g., Site Notes, Daily Report"
-                autoFocus
               />
             </div>
             <div className="mt-6 flex justify-end gap-3">
