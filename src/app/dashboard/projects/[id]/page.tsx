@@ -27,17 +27,20 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   const [pages, setPages] = useState<ProjectPage[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>('photos')
+  const [showUpload, setShowUpload] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-  const { setProjectId, showUpload, setShowUpload } = useUpload()
+  const { setProjectId, setOnPhotosUploaded } = useUpload()
 
-  // Register project ID for mobile camera button
+  // Register project ID and callback for mobile camera button
   useEffect(() => {
     setProjectId(id)
+    setOnPhotosUploaded(() => fetchPhotos)
     return () => {
       setProjectId(null)
+      setOnPhotosUploaded(null)
     }
-  }, [id, setProjectId])
+  }, [id, setProjectId, setOnPhotosUploaded])
 
   useEffect(() => {
     fetchProject()

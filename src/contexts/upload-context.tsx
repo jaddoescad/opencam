@@ -5,18 +5,22 @@ import { createContext, useContext, useState, ReactNode } from 'react'
 interface UploadContextType {
   projectId: string | null
   setProjectId: (id: string | null) => void
-  showUpload: boolean
-  setShowUpload: (show: boolean) => void
+  onPhotosUploaded: (() => void) | null
+  setOnPhotosUploaded: (handler: (() => void) | null) => void
 }
 
 const UploadContext = createContext<UploadContextType | null>(null)
 
 export function UploadProvider({ children }: { children: ReactNode }) {
   const [projectId, setProjectId] = useState<string | null>(null)
-  const [showUpload, setShowUpload] = useState(false)
+  const [onPhotosUploaded, setOnPhotosUploadedState] = useState<(() => void) | null>(null)
+
+  const setOnPhotosUploaded = (handler: (() => void) | null) => {
+    setOnPhotosUploadedState(() => handler)
+  }
 
   return (
-    <UploadContext.Provider value={{ projectId, setProjectId, showUpload, setShowUpload }}>
+    <UploadContext.Provider value={{ projectId, setProjectId, onPhotosUploaded, setOnPhotosUploaded }}>
       {children}
     </UploadContext.Provider>
   )
