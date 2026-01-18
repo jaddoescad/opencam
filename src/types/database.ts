@@ -25,6 +25,8 @@ export type Project = {
   state: string | null
   postal_code: string | null
   country: string | null
+  proposal_amount: number | null
+  invoice_amount: number | null
   created_by: string | null
   company_id: string | null
   created_at: string
