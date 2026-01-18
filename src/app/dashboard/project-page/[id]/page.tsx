@@ -85,9 +85,9 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
   }
 
   return (
-    <div className="bg-gray-100">
+    <div className="flex flex-col h-[100dvh] bg-gray-100">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.push(`/dashboard/projects/${page.project_id}`)}
@@ -114,8 +114,8 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-2">
-        <div className="flex items-center gap-2">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-2 overflow-x-auto">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={() => execCommand('bold')}
             className="p-2 hover:bg-gray-100 rounded text-gray-600 cursor-pointer"
@@ -190,18 +190,20 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
       </div>
 
       {/* Editor */}
-      <div className="flex justify-center py-8 px-6">
-        <div className="bg-white shadow-lg rounded-lg w-full max-w-4xl min-h-[700px]">
-          <div className="p-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-6">{page.name}</h1>
-            <div
-              ref={editorRef}
-              contentEditable
-              onInput={handleContentChange}
-              className="prose prose-lg max-w-none min-h-[500px] focus:outline-none text-gray-900"
-              style={{ color: '#111827', lineHeight: '1.8' }}
-              suppressContentEditableWarning
-            />
+      <div className="flex-1 overflow-auto">
+        <div className="flex justify-center py-4 sm:py-8 px-4 sm:px-6 pb-24 sm:pb-8">
+          <div className="bg-white shadow-lg rounded-lg w-full max-w-4xl min-h-[500px] sm:min-h-[700px]">
+            <div className="p-6 sm:p-12">
+              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">{page.name}</h1>
+              <div
+                ref={editorRef}
+                contentEditable
+                onInput={handleContentChange}
+                className="prose prose-lg max-w-none min-h-[400px] sm:min-h-[500px] focus:outline-none text-gray-900"
+                style={{ color: '#111827', lineHeight: '1.8' }}
+                suppressContentEditableWarning
+              />
+            </div>
           </div>
         </div>
       </div>
