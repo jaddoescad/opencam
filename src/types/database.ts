@@ -141,3 +141,12 @@ export type ChecklistItemQuestion = {
   position: number
   created_at: string
 }
+
+export type ProjectShare = {
+  id: string
+  project_id: string
+  token: string
+  created_by: string
+  created_at: string
+  is_active: boolean
+}

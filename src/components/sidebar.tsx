@@ -27,6 +27,9 @@ export function Sidebar({ user, isOpen = true, onClose }: SidebarProps) {
     if (onClose) onClose()
   }
 
+  // Check if user has restricted access
+  const isRestricted = user?.role === 'Restricted'
+
   const navigation = [
     {
       name: 'Projects',
@@ -37,6 +40,7 @@ export function Sidebar({ user, isOpen = true, onClose }: SidebarProps) {
         </svg>
       ),
       match: (path: string) => path === '/dashboard' || path.startsWith('/dashboard/projects'),
+      showForRestricted: true,
     },
     {
       name: 'Users',
@@ -47,6 +51,7 @@ export function Sidebar({ user, isOpen = true, onClose }: SidebarProps) {
         </svg>
       ),
       match: (path: string) => path.startsWith('/dashboard/users'),
+      showForRestricted: false,
     },
     {
       name: 'Templates',
@@ -57,8 +62,12 @@ export function Sidebar({ user, isOpen = true, onClose }: SidebarProps) {
         </svg>
       ),
       match: (path: string) => path.startsWith('/dashboard/templates'),
+      showForRestricted: false,
     },
   ]
+
+  // Filter navigation based on user role
+  const filteredNavigation = navigation.filter(item => !isRestricted || item.showForRestricted)
 
   const getInitials = (name: string | null, email: string | null): string => {
     if (name) {
@@ -132,7 +141,7 @@ export function Sidebar({ user, isOpen = true, onClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 px-2 py-2 space-y-1 overflow-y-auto">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = item.match(pathname)
             return (
               <Link

@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ProjectCard } from '@/components/project-card'
 import { CreateProjectModal } from '@/components/create-project-modal'
-import { EditProjectModal } from '@/components/edit-project-modal'
-import { DeleteProjectModal } from '@/components/delete-project-modal'
 import type { Project, Photo } from '@/types/database'
 
 type ProjectWithPhotos = Project & {
@@ -19,9 +17,6 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<ProjectWithPhotos[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editModalOpen, setEditModalOpen] = useState(false)
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [filter, setFilter] = useState<FilterType>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const supabase = createClient()
@@ -72,16 +67,6 @@ export default function DashboardPage() {
     project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.address?.toLowerCase().includes(searchQuery.toLowerCase())
   )
-
-  const handleEditProject = (project: Project) => {
-    setSelectedProject(project)
-    setEditModalOpen(true)
-  }
-
-  const handleDeleteProject = (project: Project) => {
-    setSelectedProject(project)
-    setDeleteModalOpen(true)
-  }
 
   return (
     <div className="p-4 sm:p-6">
@@ -164,37 +149,12 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProjects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onEdit={handleEditProject}
-              onDelete={handleDeleteProject}
-            />
+            <ProjectCard key={project.id} project={project} />
           ))}
         </div>
       )}
 
       <CreateProjectModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-
-      <EditProjectModal
-        project={selectedProject}
-        isOpen={editModalOpen}
-        onClose={() => {
-          setEditModalOpen(false)
-          setSelectedProject(null)
-        }}
-        onSave={fetchProjects}
-      />
-
-      <DeleteProjectModal
-        project={selectedProject}
-        isOpen={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false)
-          setSelectedProject(null)
-        }}
-        onDelete={fetchProjects}
-      />
     </div>
   )
 }
