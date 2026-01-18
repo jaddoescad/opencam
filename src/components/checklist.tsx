@@ -276,7 +276,6 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [editingSection, setEditingSection] = useState<string | null>(null)
   const [showSectionMenu, setShowSectionMenu] = useState<string | null>(null)
-  const [showChecklistMenu, setShowChecklistMenu] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const supabase = createClient()
 
@@ -284,7 +283,6 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
   useEffect(() => {
     const handleClick = () => {
       setShowSectionMenu(null)
-      setShowChecklistMenu(false)
     }
     document.addEventListener('click', handleClick)
     return () => document.removeEventListener('click', handleClick)
@@ -545,33 +543,18 @@ function ChecklistDetailView({ checklist, onBack, onDelete, onChecklistChange }:
                 {editMode ? 'Done' : 'Edit'}
               </button>
 
-              {/* Menu Button */}
-              <div className="relative">
+              {/* Delete Button - only in edit mode */}
+              {editMode && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setShowChecklistMenu(!showChecklistMenu)
-                  }}
-                  className="p-2 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg cursor-pointer"
+                  onClick={onDelete}
+                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg cursor-pointer"
+                  title="Delete Checklist"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
-                {showChecklistMenu && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                    <button
-                      onClick={() => {
-                        onDelete()
-                        setShowChecklistMenu(false)
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 cursor-pointer"
-                    >
-                      Delete Checklist
-                    </button>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
             {/* Toggle Filters */}
