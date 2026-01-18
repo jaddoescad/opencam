@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 import type { Checklist, ChecklistItem, ChecklistItemPhoto } from '@/types/database'
@@ -749,6 +750,7 @@ function ChecklistFieldItem({ item, editMode, onToggle, onUpdate, onDelete }: Ch
   const [photos, setPhotos] = useState<ChecklistItemPhoto[]>([])
   const [uploading, setUploading] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
+  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
@@ -912,16 +914,28 @@ function ChecklistFieldItem({ item, editMode, onToggle, onUpdate, onDelete }: Ch
             <p className="text-sm text-gray-500 mt-1">{item.notes}</p>
           )}
 
-          {/* Text Response Input - always visible if field requires text */}
+          {/* Text Response - show button or response */}
           {item.field_type === 'text' && (
             <div className="mt-2">
-              <input
-                type="text"
-                placeholder="Add response..."
-                defaultValue={item.response || ''}
-                onBlur={(e) => onUpdate({ response: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 placeholder-gray-400"
-              />
+              {item.response ? (
+                <div
+                  onClick={() => router.push(`/dashboard/checklist-response/${item.id}`)}
+                  className="p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100"
+                >
+                  <p className="text-sm text-gray-700">{item.response}</p>
+                  <p className="text-xs text-blue-600 mt-1">Tap to edit</p>
+                </div>
+              ) : (
+                <button
+                  onClick={() => router.push(`/dashboard/checklist-response/${item.id}`)}
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Response
+                </button>
+              )}
             </div>
           )}
 
