@@ -32,10 +32,20 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   const supabase = createClient()
   const { setProjectId, setOnPhotosUploaded } = useUpload()
 
+  const fetchPhotos = async () => {
+    const { data } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('project_id', id)
+      .order('created_at', { ascending: false })
+
+    if (data) setPhotos(data)
+  }
+
   // Register project ID and callback for mobile camera button
   useEffect(() => {
     setProjectId(id)
-    setOnPhotosUploaded(() => fetchPhotos)
+    setOnPhotosUploaded(fetchPhotos)
     return () => {
       setProjectId(null)
       setOnPhotosUploaded(null)
@@ -64,16 +74,6 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       setProject(data)
     }
     setLoading(false)
-  }
-
-  const fetchPhotos = async () => {
-    const { data } = await supabase
-      .from('photos')
-      .select('*')
-      .eq('project_id', id)
-      .order('created_at', { ascending: false })
-
-    if (data) setPhotos(data)
   }
 
   const fetchMembers = async () => {
