@@ -165,20 +165,6 @@ export default function ProjectPage({ params }: ProjectPageProps) {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {activeTab === 'photos' && (
-              <button
-                onClick={() => setShowUpload(true)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-blue-700"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="hidden sm:inline">Add Photos</span>
-                <span className="sm:hidden">Add</span>
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -227,6 +213,21 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           </button>
         </nav>
       </div>
+
+      {/* Add Photos Button */}
+      {activeTab === 'photos' && (
+        <div className="mb-6">
+          <button
+            onClick={() => setShowUpload(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Photos
+          </button>
+        </div>
+      )}
 
       {/* Tab Content */}
       {activeTab === 'photos' && (
