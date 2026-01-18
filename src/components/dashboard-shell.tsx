@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Sidebar } from './sidebar'
 import { UploadProvider, useUpload } from '@/contexts/upload-context'
 import type { Profile } from '@/types/database'
@@ -11,12 +11,39 @@ interface DashboardShellProps {
 }
 
 function CameraButton() {
-  const { triggerUpload } = useUpload()
+  const { projectId, onPhotoTaken } = useUpload()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleClick = () => {
+    if (projectId && onPhotoTaken) {
+      fileInputRef.current?.click()
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0 && onPhotoTaken) {
+      onPhotoTaken(files)
+    }
+    // Reset input so the same file can be selected again
+    e.target.value = ''
+  }
+
+  // Only show the button if we're on a project page
+  if (!projectId) return null
 
   return (
     <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileChange}
+        className="hidden"
+      />
       <button
-        onClick={triggerUpload}
+        onClick={handleClick}
         className="w-16 h-16 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-full shadow-lg flex items-center justify-center transition-colors"
         aria-label="Take photo"
       >

@@ -3,35 +3,24 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
 
 interface UploadContextType {
-  triggerUpload: () => void
-  uploadTriggered: boolean
-  resetUploadTrigger: () => void
-  setUploadHandler: (handler: (() => void) | null) => void
+  projectId: string | null
+  setProjectId: (id: string | null) => void
+  onPhotoTaken: ((files: FileList) => void) | null
+  setOnPhotoTaken: (handler: ((files: FileList) => void) | null) => void
 }
 
 const UploadContext = createContext<UploadContextType | null>(null)
 
 export function UploadProvider({ children }: { children: ReactNode }) {
-  const [uploadTriggered, setUploadTriggered] = useState(false)
-  const [uploadHandler, setUploadHandlerState] = useState<(() => void) | null>(null)
+  const [projectId, setProjectId] = useState<string | null>(null)
+  const [onPhotoTaken, setOnPhotoTakenState] = useState<((files: FileList) => void) | null>(null)
 
-  const triggerUpload = useCallback(() => {
-    if (uploadHandler) {
-      uploadHandler()
-    }
-    setUploadTriggered(true)
-  }, [uploadHandler])
-
-  const resetUploadTrigger = useCallback(() => {
-    setUploadTriggered(false)
-  }, [])
-
-  const setUploadHandler = useCallback((handler: (() => void) | null) => {
-    setUploadHandlerState(() => handler)
+  const setOnPhotoTaken = useCallback((handler: ((files: FileList) => void) | null) => {
+    setOnPhotoTakenState(() => handler)
   }, [])
 
   return (
-    <UploadContext.Provider value={{ triggerUpload, uploadTriggered, resetUploadTrigger, setUploadHandler }}>
+    <UploadContext.Provider value={{ projectId, setProjectId, onPhotoTaken, setOnPhotoTaken }}>
       {children}
     </UploadContext.Provider>
   )
