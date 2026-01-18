@@ -190,27 +190,6 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                 {formatAddress()}
               </p>
             )}
-            {/* Proposal and Invoice Amounts */}
-            {(project.proposal_amount !== null || project.invoice_amount !== null) && (
-              <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                {project.proposal_amount !== null && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-gray-500">Proposal:</span>
-                    <span className="font-medium text-gray-900">
-                      ${project.proposal_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                )}
-                {project.invoice_amount !== null && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-gray-500">Invoice:</span>
-                    <span className="font-medium text-gray-900">
-                      ${project.invoice_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>

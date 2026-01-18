@@ -26,8 +26,6 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
   const [state, setState] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [country, setCountry] = useState('Canada')
-  const [proposalAmount, setProposalAmount] = useState('')
-  const [invoiceAmount, setInvoiceAmount] = useState('')
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [projectTemplates, setProjectTemplates] = useState<ProjectTemplate[]>([])
   const [loading, setLoading] = useState(false)
@@ -88,8 +86,6 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
         state: state || null,
         postal_code: postalCode || null,
         country: country || null,
-        proposal_amount: proposalAmount ? parseFloat(proposalAmount) : null,
-        invoice_amount: invoiceAmount ? parseFloat(invoiceAmount) : null,
         created_by: user.id,
         company_id: profile?.company_id,
       })
@@ -205,8 +201,6 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
     setState('')
     setPostalCode('')
     setCountry('Canada')
-    setProposalAmount('')
-    setInvoiceAmount('')
     setSelectedTemplateId('')
   }
 
@@ -343,46 +337,6 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Proposal Amount and Invoice Amount - Side by Side */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="proposalAmount" className="block text-sm font-semibold text-gray-800 mb-1">
-                    Proposal Amount
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                    <input
-                      id="proposalAmount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={proposalAmount}
-                      onChange={(e) => setProposalAmount(e.target.value)}
-                      className="block w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="invoiceAmount" className="block text-sm font-semibold text-gray-800 mb-1">
-                    Invoice Amount
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                    <input
-                      id="invoiceAmount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={invoiceAmount}
-                      onChange={(e) => setInvoiceAmount(e.target.value)}
-                      className="block w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400"
-                      placeholder="0.00"
-                    />
                   </div>
                 </div>
               </div>
