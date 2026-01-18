@@ -21,7 +21,6 @@ const COUNTRIES = [
 export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps) {
   const [name, setName] = useState('')
   const [addressLine1, setAddressLine1] = useState('')
-  const [addressLine2, setAddressLine2] = useState('')
   const [city, setCity] = useState('')
   const [state, setState] = useState('')
   const [postalCode, setPostalCode] = useState('')
@@ -72,7 +71,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
       .single()
 
     // Build full address string for display
-    const addressParts = [addressLine1, addressLine2, city, state, postalCode].filter(Boolean)
+    const addressParts = [addressLine1, city, state, postalCode].filter(Boolean)
     const fullAddress = addressParts.join(', ')
 
     const { data, error: insertError } = await supabase
@@ -81,7 +80,6 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
         name,
         address: fullAddress || null,
         address_line1: addressLine1 || null,
-        address_line2: addressLine2 || null,
         city: city || null,
         state: state || null,
         postal_code: postalCode || null,
@@ -196,7 +194,6 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
   const resetForm = () => {
     setName('')
     setAddressLine1('')
-    setAddressLine2('')
     setCity('')
     setState('')
     setPostalCode('')
@@ -210,10 +207,9 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50" onClick={handleClose} />
-        <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50" onClick={handleClose} />
+      <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto overscroll-contain">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Create New Project</h2>
 
           <form onSubmit={handleSubmit}>
@@ -240,10 +236,10 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                 />
               </div>
 
-              {/* Project Address 1 */}
+              {/* Address */}
               <div>
                 <label htmlFor="addressLine1" className="block text-sm font-semibold text-gray-800 mb-1">
-                  Project Address 1
+                  Address
                 </label>
                 <input
                   id="addressLine1"
@@ -251,22 +247,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                   value={addressLine1}
                   onChange={(e) => setAddressLine1(e.target.value)}
                   className="block w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400"
-                  placeholder="Project Address 1"
-                />
-              </div>
-
-              {/* Project Address 2 */}
-              <div>
-                <label htmlFor="addressLine2" className="block text-sm font-semibold text-gray-800 mb-1">
-                  Project Address 2
-                </label>
-                <input
-                  id="addressLine2"
-                  type="text"
-                  value={addressLine2}
-                  onChange={(e) => setAddressLine2(e.target.value)}
-                  className="block w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400"
-                  placeholder="Project Address 2"
+                  placeholder="Address"
                 />
               </div>
 
@@ -392,7 +373,6 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
             </div>
           </form>
         </div>
-      </div>
     </div>
   )
 }
