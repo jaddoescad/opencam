@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect, use, useCallback, useRef } from 'react'
+import { useState, useEffect, use, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { PhotoGrid } from '@/components/photo-grid'
 import { PhotoUpload } from '@/components/photo-upload'
 import { MemberList } from '@/components/member-list'
@@ -13,7 +12,7 @@ import { EditProjectModal } from '@/components/edit-project-modal'
 import { DeleteProjectModal } from '@/components/delete-project-modal'
 import { ShareGalleryModal } from '@/components/share-gallery-modal'
 import { useUpload } from '@/contexts/upload-context'
-import type { Project, Photo, Profile, ProjectMember, Checklist, ProjectPage } from '@/types/database'
+import { useCurrentUser, useClickOutside, useProjectData } from '@/hooks'
 
 type Tab = 'photos' | 'members' | 'checklists' | 'pages'
 
@@ -23,138 +22,56 @@ interface ProjectPageProps {
 
 export default function ProjectPage({ params }: ProjectPageProps) {
   const { id } = use(params)
-  const [project, setProject] = useState<Project | null>(null)
-  const [photos, setPhotos] = useState<Photo[]>([])
-  const [members, setMembers] = useState<(ProjectMember & { profile: Profile })[]>([])
-  const [checklists, setChecklists] = useState<Checklist[]>([])
-  const [pages, setPages] = useState<ProjectPage[]>([])
-  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>('photos')
   const [showUpload, setShowUpload] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [shareModalOpen, setShareModalOpen] = useState(false)
-  const [userRole, setUserRole] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
-  const supabase = createClient()
   const { setProjectId, setOnPhotosUploaded } = useUpload()
+
+  // Use custom hooks
+  const { role: userRole } = useCurrentUser()
+  const {
+    project,
+    photos,
+    members,
+    checklists,
+    pages,
+    loading,
+    error,
+    refetch,
+    refetchPhotos,
+    refetchMembers,
+    refetchChecklists,
+    refetchPages,
+  } = useProjectData(id)
+
+  // Close menu when clicking outside
+  useClickOutside(menuRef, () => setMenuOpen(false), menuOpen)
 
   // Check if user can edit/delete (Admin or Standard only, not Restricted)
   const canEditProject = userRole === 'Admin' || userRole === 'Standard'
 
-  const fetchPhotos = useCallback(async () => {
-    const supabaseClient = createClient()
-    const { data } = await supabaseClient
-      .from('photos')
-      .select('*')
-      .eq('project_id', id)
-      .order('created_at', { ascending: false })
-
-    if (data) setPhotos(data)
-  }, [id])
-
   // Register project ID and callback for mobile camera button
   useEffect(() => {
     setProjectId(id)
-    setOnPhotosUploaded(fetchPhotos)
+    setOnPhotosUploaded(refetchPhotos)
     return () => {
       setProjectId(null)
       setOnPhotosUploaded(null)
     }
-  }, [id, fetchPhotos, setProjectId, setOnPhotosUploaded])
+  }, [id, refetchPhotos, setProjectId, setOnPhotosUploaded])
 
-  // Fetch current user's role
+  // Redirect to dashboard if project not found
   useEffect(() => {
-    const fetchUserRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-        if (profile) {
-          setUserRole(profile.role)
-        }
-      }
-    }
-    fetchUserRole()
-  }, [])
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-
-    if (menuOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [menuOpen])
-
-  useEffect(() => {
-    fetchProject()
-    fetchPhotos()
-    fetchMembers()
-    fetchChecklists()
-    fetchPages()
-  }, [id])
-
-  const fetchProject = async () => {
-    const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('id', id)
-      .single()
-
     if (error) {
       console.error('Error fetching project:', error)
       router.push('/dashboard')
-    } else {
-      setProject(data)
     }
-    setLoading(false)
-  }
-
-  const fetchMembers = async () => {
-    const { data } = await supabase
-      .from('project_members')
-      .select(`
-        *,
-        profile:profiles(*)
-      `)
-      .eq('project_id', id)
-
-    if (data) setMembers(data as (ProjectMember & { profile: Profile })[])
-  }
-
-  const fetchChecklists = async () => {
-    const { data } = await supabase
-      .from('checklists')
-      .select('*')
-      .eq('project_id', id)
-      .order('created_at', { ascending: false })
-
-    if (data) setChecklists(data)
-  }
-
-  const fetchPages = async () => {
-    const { data } = await supabase
-      .from('project_pages')
-      .select('*')
-      .eq('project_id', id)
-      .order('created_at', { ascending: false })
-
-    if (data) setPages(data)
-  }
+  }, [error, router])
 
   if (loading) {
     return (
@@ -340,16 +257,16 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
       {/* Tab Content */}
       {activeTab === 'photos' && (
-        <PhotoGrid photos={photos} projectId={id} onPhotosChange={fetchPhotos} />
+        <PhotoGrid photos={photos} projectId={id} onPhotosChange={refetchPhotos} />
       )}
       {activeTab === 'members' && (
-        <MemberList members={members} projectId={id} onMembersChange={fetchMembers} />
+        <MemberList members={members} projectId={id} onMembersChange={refetchMembers} />
       )}
       {activeTab === 'checklists' && (
-        <ChecklistList checklists={checklists} projectId={id} onChecklistsChange={fetchChecklists} />
+        <ChecklistList checklists={checklists} projectId={id} onChecklistsChange={refetchChecklists} />
       )}
       {activeTab === 'pages' && (
-        <ProjectPagesList pages={pages} projectId={id} onPagesChange={fetchPages} />
+        <ProjectPagesList pages={pages} projectId={id} onPagesChange={refetchPages} />
       )}
 
       {/* Upload Modal */}
@@ -359,7 +276,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           onClose={() => setShowUpload(false)}
           onUploadComplete={() => {
             setShowUpload(false)
-            fetchPhotos()
+            refetchPhotos()
           }}
         />
       )}
@@ -370,7 +287,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         onSave={() => {
-          fetchProject()
+          refetch()
         }}
       />
 

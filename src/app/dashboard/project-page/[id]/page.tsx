@@ -12,18 +12,36 @@ interface ProjectPageEditorProps {
 export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
   const { id } = use(params)
   const [page, setPage] = useState<ProjectPage | null>(null)
+  const [initialContent, setInitialContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const contentSetRef = useRef(false)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
     fetchPage()
   }, [id])
+
+  // Ref callback to set content when editor mounts
+  const setEditorRef = useCallback((node: HTMLDivElement | null) => {
+    editorRef.current = node
+    if (node && initialContent !== null && !contentSetRef.current) {
+      node.innerHTML = initialContent
+      contentSetRef.current = true
+    }
+  }, [initialContent])
+
+  // Also set content when initialContent changes (if editor already mounted)
+  useEffect(() => {
+    if (editorRef.current && initialContent !== null && !contentSetRef.current) {
+      editorRef.current.innerHTML = initialContent
+      contentSetRef.current = true
+    }
+  }, [initialContent])
 
   const fetchPage = async () => {
     const { data, error } = await supabase
@@ -38,14 +56,8 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
     }
 
     setPage(data)
+    setInitialContent(data.content || '')
     setLoading(false)
-
-    // Set initial content
-    setTimeout(() => {
-      if (editorRef.current && data.content) {
-        editorRef.current.innerHTML = data.content
-      }
-    }, 0)
   }
 
   // Save function that can be called directly
@@ -65,7 +77,6 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
 
     if (!error) {
       setHasUnsavedChanges(false)
-      setLastSaved(new Date())
       return true
     } else {
       console.error('Error saving:', error)
@@ -275,7 +286,7 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
             <div className="p-4 sm:p-12">
               <h1 className="text-xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-6">{page.name}</h1>
               <div
-                ref={editorRef}
+                ref={setEditorRef}
                 contentEditable
                 onInput={handleContentChange}
                 className="prose prose-sm sm:prose-lg max-w-none min-h-[400px] sm:min-h-[500px] focus:outline-none text-gray-900"

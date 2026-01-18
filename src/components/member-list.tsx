@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getInitials, formatRelativeTime } from '@/lib/utils'
+import { useCurrentUser } from '@/hooks'
 import type { Profile, ProjectMember } from '@/types/database'
 
 interface MemberListProps {
@@ -18,38 +19,20 @@ export function MemberList({ members, projectId, onMembersChange }: MemberListPr
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [fetchingUsers, setFetchingUsers] = useState(false)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
   const supabase = createClient()
+  const { user, role: currentUserRole } = useCurrentUser()
+
+  // Current user ID from hook
+  const currentUserId = user?.id ?? null
 
   // Check if current user can see emails (Admin or Standard only)
   const canSeeEmails = currentUserRole === 'Admin' || currentUserRole === 'Standard'
-
-  useEffect(() => {
-    fetchCurrentUser()
-  }, [])
 
   useEffect(() => {
     if (showAddModal) {
       fetchAllUsers()
     }
   }, [showAddModal])
-
-  const fetchCurrentUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      setCurrentUserId(user.id)
-      // Get current user's role
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      if (profile) {
-        setCurrentUserRole(profile.role)
-      }
-    }
-  }
 
   const fetchAllUsers = async () => {
     setFetchingUsers(true)

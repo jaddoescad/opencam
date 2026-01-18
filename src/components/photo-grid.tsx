@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useKeyboardNavigation } from '@/hooks'
 import type { Photo, Profile } from '@/types/database'
 
 interface PhotoWithUploader extends Photo {
@@ -80,27 +81,34 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
     fetchUploaderInfo()
   }, [photos])
 
-  // Keyboard navigation for lightbox
-  useEffect(() => {
+  // Keyboard navigation handlers for lightbox
+  const navigateToPrevious = useCallback(() => {
     if (!selectedPhoto) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setSelectedPhoto(null)
-      } else if (e.key === 'ArrowLeft') {
-        const currentIndex = photosWithUploaders.findIndex(p => p.id === selectedPhoto.id)
-        const prevIndex = currentIndex === 0 ? photosWithUploaders.length - 1 : currentIndex - 1
-        setSelectedPhoto(photosWithUploaders[prevIndex])
-      } else if (e.key === 'ArrowRight') {
-        const currentIndex = photosWithUploaders.findIndex(p => p.id === selectedPhoto.id)
-        const nextIndex = currentIndex === photosWithUploaders.length - 1 ? 0 : currentIndex + 1
-        setSelectedPhoto(photosWithUploaders[nextIndex])
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    const currentIndex = photosWithUploaders.findIndex(p => p.id === selectedPhoto.id)
+    const prevIndex = currentIndex === 0 ? photosWithUploaders.length - 1 : currentIndex - 1
+    setSelectedPhoto(photosWithUploaders[prevIndex])
   }, [selectedPhoto, photosWithUploaders])
+
+  const navigateToNext = useCallback(() => {
+    if (!selectedPhoto) return
+    const currentIndex = photosWithUploaders.findIndex(p => p.id === selectedPhoto.id)
+    const nextIndex = currentIndex === photosWithUploaders.length - 1 ? 0 : currentIndex + 1
+    setSelectedPhoto(photosWithUploaders[nextIndex])
+  }, [selectedPhoto, photosWithUploaders])
+
+  const closeLightbox = useCallback(() => {
+    setSelectedPhoto(null)
+  }, [])
+
+  // Use custom hook for keyboard navigation
+  useKeyboardNavigation(
+    {
+      onEscape: closeLightbox,
+      onArrowLeft: navigateToPrevious,
+      onArrowRight: navigateToNext,
+    },
+    !!selectedPhoto
+  )
 
   const fetchUploaderInfo = async () => {
     // Get unique uploader IDs
@@ -252,9 +260,7 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                const currentIndex = photosWithUploaders.findIndex(p => p.id === selectedPhoto.id)
-                const prevIndex = currentIndex === 0 ? photosWithUploaders.length - 1 : currentIndex - 1
-                setSelectedPhoto(photosWithUploaders[prevIndex])
+                navigateToPrevious()
               }}
               className="absolute left-4 w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white cursor-pointer z-10"
             >
@@ -269,9 +275,7 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                const currentIndex = photosWithUploaders.findIndex(p => p.id === selectedPhoto.id)
-                const nextIndex = currentIndex === photosWithUploaders.length - 1 ? 0 : currentIndex + 1
-                setSelectedPhoto(photosWithUploaders[nextIndex])
+                navigateToNext()
               }}
               className="absolute right-4 w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white cursor-pointer z-10"
             >

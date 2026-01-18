@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { usePhotoUpload } from '@/hooks'
 
 interface PhotoUploadProps {
   projectId: string
@@ -11,10 +11,7 @@ interface PhotoUploadProps {
 
 export function PhotoUpload({ projectId, onClose, onUploadComplete }: PhotoUploadProps) {
   const [files, setFiles] = useState<File[]>([])
-  const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
+  const { uploading, progress, error, uploadFiles, clearError } = usePhotoUpload(onUploadComplete)
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -39,51 +36,11 @@ export function PhotoUpload({ projectId, onClose, onUploadComplete }: PhotoUploa
 
   const handleUpload = async () => {
     if (files.length === 0) return
-
-    setUploading(true)
-    setError(null)
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setError('You must be logged in to upload photos')
-      setUploading(false)
-      return
-    }
-
-    let uploaded = 0
-    for (const file of files) {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${projectId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('photos')
-        .upload(fileName, file)
-
-      if (uploadError) {
-        setError(`Failed to upload ${file.name}: ${uploadError.message}`)
-        continue
-      }
-
-      const { error: insertError } = await supabase
-        .from('photos')
-        .insert({
-          project_id: projectId,
-          uploaded_by: user.id,
-          storage_path: fileName,
-        })
-
-      if (insertError) {
-        setError(`Failed to save photo record: ${insertError.message}`)
-        continue
-      }
-
-      uploaded++
-      setUploadProgress(Math.round((uploaded / files.length) * 100))
-    }
-
-    setUploading(false)
-    onUploadComplete()
+    clearError()
+    await uploadFiles(files, projectId)
   }
+
+  const uploadProgress = progress ? Math.round((progress.current / progress.total) * 100) : 0
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -145,7 +102,7 @@ export function PhotoUpload({ projectId, onClose, onUploadComplete }: PhotoUploa
           )}
 
           {/* Progress */}
-          {uploading && (
+          {uploading && progress && (
             <div className="mt-4">
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div

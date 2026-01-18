@@ -150,3 +150,15 @@ export type ProjectShare = {
   created_at: string
   is_active: boolean
 }
+
+// Composite Types
+export type ProjectWithPhotos = Project & {
+  photo_count?: number
+  photos?: Photo[]
+}
+
+export type PhotoWithUploader = Photo & {
+  uploader?: Profile
+}
+
+export type FilterType = 'all' | 'my' | 'archived'

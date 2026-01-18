@@ -2,114 +2,46 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useCurrentUser, useTemplates, type TemplateType } from '@/hooks'
 import type { ProjectTemplate, ChecklistTemplate, PageTemplate } from '@/types/database'
 
 type Tab = 'projects' | 'checklists' | 'pages'
 
 export default function TemplatesPage() {
   const [activeTab, setActiveTab] = useState<Tab>('projects')
-  const [projectTemplates, setProjectTemplates] = useState<ProjectTemplate[]>([])
-  const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplate[]>([])
-  const [pageTemplates, setPageTemplates] = useState<PageTemplate[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [loading, setLoading] = useState(true)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
-  const [authorized, setAuthorized] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const { role, loading: userLoading } = useCurrentUser()
+  const {
+    projectTemplates,
+    checklistTemplates,
+    pageTemplates,
+    loading,
+    createTemplate,
+    deleteTemplate,
+  } = useTemplates()
+
+  // Derived authorization state
+  const authorized = !userLoading && role !== null && role !== 'Restricted'
 
   // Check if user has permission to view this page
   useEffect(() => {
-    const checkPermission = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-
-        if (profile?.role === 'Restricted') {
-          router.push('/dashboard')
-          return
-        }
-        setAuthorized(true)
-      }
+    if (!userLoading && role === 'Restricted') {
+      router.push('/dashboard')
     }
-    checkPermission()
-  }, [])
-
-  useEffect(() => {
-    if (authorized) {
-      fetchTemplates()
-    }
-  }, [authorized])
-
-  const fetchTemplates = async () => {
-    setLoading(true)
-
-    const [projectRes, checklistRes, pageRes] = await Promise.all([
-      supabase.from('project_templates').select('*').order('updated_at', { ascending: false }),
-      supabase.from('checklist_templates').select('*').order('updated_at', { ascending: false }),
-      supabase.from('page_templates').select('*').order('updated_at', { ascending: false }),
-    ])
-
-    if (projectRes.data) setProjectTemplates(projectRes.data)
-    if (checklistRes.data) setChecklistTemplates(checklistRes.data)
-    if (pageRes.data) setPageTemplates(pageRes.data)
-
-    setLoading(false)
-  }
+  }, [role, userLoading, router])
 
   const handleCreateTemplate = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    if (activeTab === 'projects') {
-      const { data, error } = await supabase
-        .from('project_templates')
-        .insert({ name: 'Untitled Template', created_by: user.id })
-        .select()
-        .single()
-
-      if (!error && data) {
-        router.push(`/dashboard/templates/projects/${data.id}`)
-      }
-    } else if (activeTab === 'checklists') {
-      const { data, error } = await supabase
-        .from('checklist_templates')
-        .insert({ name: 'Untitled Template', created_by: user.id })
-        .select()
-        .single()
-
-      if (!error && data) {
-        router.push(`/dashboard/templates/checklists/${data.id}`)
-      }
-    } else if (activeTab === 'pages') {
-      const { data, error } = await supabase
-        .from('page_templates')
-        .insert({ name: 'Untitled Template', created_by: user.id })
-        .select()
-        .single()
-
-      if (!error && data) {
-        router.push(`/dashboard/templates/pages/${data.id}`)
-      }
+    const result = await createTemplate(activeTab as TemplateType)
+    if (result) {
+      router.push(`/dashboard/templates/${activeTab}/${result.id}`)
     }
   }
 
   const handleDeleteTemplate = async (id: string, type: Tab) => {
     if (!confirm('Are you sure you want to delete this template?')) return
-
-    const table = type === 'projects' ? 'project_templates' :
-                  type === 'checklists' ? 'checklist_templates' : 'page_templates'
-
-    const { error } = await supabase.from(table).delete().eq('id', id)
-
-    if (!error) {
-      fetchTemplates()
-    }
+    await deleteTemplate(type as TemplateType, id)
   }
 
   const formatDate = (dateString: string) => {
@@ -159,7 +91,7 @@ export default function TemplatesPage() {
   const templates = getCurrentTemplates()
 
   // Don't render until we confirm authorization
-  if (!authorized) {
+  if (userLoading || !authorized) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-gray-500">Loading...</div>
