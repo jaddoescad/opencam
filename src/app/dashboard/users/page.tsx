@@ -6,7 +6,6 @@ import { formatRelativeTime } from '@/lib/utils'
 import type { Profile } from '@/types/database'
 
 interface UserWithRole extends Profile {
-  role?: string
   is_active?: boolean
 }
 
@@ -30,7 +29,7 @@ export default function UsersPage() {
     if (!error && data) {
       const usersWithRoles = data.map((user, index) => ({
         ...user,
-        role: index === 0 ? 'Admin' : 'Standard',
+        role: (index === 0 ? 'Admin' : 'Standard') as Profile['role'],
         is_active: true,
       }))
       setUsers(usersWithRoles)
