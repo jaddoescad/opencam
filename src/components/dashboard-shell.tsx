@@ -131,7 +131,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
           </div>
 
           {/* Page content */}
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-auto pb-24 sm:pb-0">
             {children}
           </main>
 

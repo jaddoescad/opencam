@@ -204,7 +204,7 @@ export default function ChecklistEditPage({ params }: ChecklistEditPageProps) {
   }
 
   return (
-    <div className="bg-gray-100 pb-36 sm:pb-8">
+    <div className="bg-gray-100">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center gap-2 text-gray-600">

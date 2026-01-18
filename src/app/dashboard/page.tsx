@@ -69,7 +69,7 @@ export default function DashboardPage() {
   )
 
   return (
-    <div className="p-4 sm:p-6 pb-20 sm:pb-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Projects</h1>
         <button
