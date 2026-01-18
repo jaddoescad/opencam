@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use, useRef } from 'react'
+import { useState, useEffect, use, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { ProjectPage } from '@/types/database'
@@ -14,6 +14,8 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
   const [page, setPage] = useState<ProjectPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const router = useRouter()
@@ -46,26 +48,87 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
     }, 0)
   }
 
+  // Save function that can be called directly
+  const saveContent = useCallback(async () => {
+    if (!editorRef.current || !page) return false
+
+    setSaving(true)
+    const { error } = await supabase
+      .from('project_pages')
+      .update({
+        content: editorRef.current.innerHTML,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', page.id)
+
+    setSaving(false)
+
+    if (!error) {
+      setHasUnsavedChanges(false)
+      setLastSaved(new Date())
+      return true
+    } else {
+      console.error('Error saving:', error)
+      return false
+    }
+  }, [page, supabase])
+
   const handleContentChange = () => {
+    setHasUnsavedChanges(true)
+
+    // Clear existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current)
     }
 
-    saveTimeoutRef.current = setTimeout(async () => {
-      if (editorRef.current && page) {
-        setSaving(true)
-        await supabase
-          .from('project_pages')
-          .update({ content: editorRef.current.innerHTML })
-          .eq('id', page.id)
-        setSaving(false)
-      }
+    // Auto-save after 1 second of no typing
+    saveTimeoutRef.current = setTimeout(() => {
+      saveContent()
     }, 1000)
   }
+
+  // Save before navigating away
+  const handleBack = async () => {
+    // Clear any pending auto-save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    // Save if there are unsaved changes
+    if (hasUnsavedChanges) {
+      await saveContent()
+    }
+
+    router.push(`/dashboard/projects/${page?.project_id}`)
+  }
+
+  // Warn user if they try to leave with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value)
     editorRef.current?.focus()
+    // Mark as changed when formatting is applied
+    setHasUnsavedChanges(true)
   }
 
   if (loading) {
@@ -90,7 +153,7 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between">
           <button
-            onClick={() => router.push(`/dashboard/projects/${page.project_id}`)}
+            onClick={handleBack}
             className="flex items-center gap-1 text-gray-600 hover:text-gray-900 cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,6 +164,13 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
           <div className="flex items-center gap-4 text-sm">
             {saving ? (
               <span className="text-blue-600">Saving...</span>
+            ) : hasUnsavedChanges ? (
+              <span className="text-orange-500 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="4" />
+                </svg>
+                Unsaved changes
+              </span>
             ) : (
               <span className="text-green-600 flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,21 +256,30 @@ export default function ProjectPageEditor({ params }: ProjectPageEditorProps) {
               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
             </svg>
           </button>
+          <div className="h-6 w-px bg-gray-300 mx-1" />
+          <button
+            onClick={() => saveContent()}
+            disabled={saving || !hasUnsavedChanges}
+            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            title="Save now"
+          >
+            Save
+          </button>
         </div>
       </div>
 
       {/* Editor */}
       <div className="flex-1 overflow-auto">
-        <div className="flex justify-center py-4 sm:py-8 px-4 sm:px-6 pb-24 sm:pb-8">
-          <div className="bg-white shadow-lg rounded-lg w-full max-w-4xl min-h-[500px] sm:min-h-[700px]">
-            <div className="p-6 sm:p-12">
-              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">{page.name}</h1>
+        <div className="flex justify-center py-2 sm:py-8 px-2 sm:px-6 pb-24 sm:pb-8">
+          <div className="bg-white sm:shadow-lg sm:rounded-lg w-full max-w-4xl min-h-[500px] sm:min-h-[700px]">
+            <div className="p-4 sm:p-12">
+              <h1 className="text-xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-6">{page.name}</h1>
               <div
                 ref={editorRef}
                 contentEditable
                 onInput={handleContentChange}
-                className="prose prose-lg max-w-none min-h-[400px] sm:min-h-[500px] focus:outline-none text-gray-900"
-                style={{ color: '#111827', lineHeight: '1.8' }}
+                className="prose prose-sm sm:prose-lg max-w-none min-h-[400px] sm:min-h-[500px] focus:outline-none text-gray-900"
+                style={{ color: '#111827', lineHeight: '1.7' }}
                 suppressContentEditableWarning
               />
             </div>
