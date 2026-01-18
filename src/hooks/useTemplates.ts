@@ -64,12 +64,23 @@ export function useTemplates(): UseTemplatesResult {
         return null
       }
 
+      // Get the user's profile to get company_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single()
+
       const tableName = type === 'projects' ? 'project_templates' :
                         type === 'checklists' ? 'checklist_templates' : 'page_templates'
 
       const { data, error: insertError } = await supabase
         .from(tableName)
-        .insert({ name: 'Untitled Template', created_by: user.id })
+        .insert({
+          name: 'Untitled Template',
+          created_by: user.id,
+          company_id: profile?.company_id,
+        })
         .select()
         .single()
 

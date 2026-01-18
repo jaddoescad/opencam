@@ -9,6 +9,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
+  const [companyName, setCompanyName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -25,6 +26,7 @@ export default function SignupPage() {
       options: {
         data: {
           full_name: fullName,
+          company_name: companyName,
         },
       },
     })
@@ -68,6 +70,22 @@ export default function SignupPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="John Doe"
+              />
+            </div>
+            <div>
+              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
+                Company name
+              </label>
+              <input
+                id="companyName"
+                name="companyName"
+                type="text"
+                autoComplete="organization"
+                required
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Acme Inc."
               />
             </div>
             <div>

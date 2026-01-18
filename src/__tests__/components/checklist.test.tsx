@@ -15,8 +15,12 @@ vi.mock('next/navigation', () => ({
 // Mock Supabase client
 const mockGetUser = vi.fn()
 const mockInsert = vi.fn()
+const mockInsertSingle = vi.fn()
 const mockDelete = vi.fn()
 const mockSelect = vi.fn()
+const mockTemplatesSelect = vi.fn()
+const mockTemplateItemsSelect = vi.fn()
+const mockChecklistItemsInsert = vi.fn()
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
@@ -26,7 +30,14 @@ vi.mock('@/lib/supabase/client', () => ({
     from: vi.fn().mockImplementation((table) => {
       if (table === 'checklists') {
         return {
-          insert: mockInsert,
+          insert: vi.fn().mockImplementation((data) => {
+            mockInsert(data)
+            return {
+              select: vi.fn().mockReturnValue({
+                single: () => mockInsertSingle(data),
+              }),
+            }
+          }),
           delete: () => ({
             eq: mockDelete,
           }),
@@ -37,6 +48,23 @@ vi.mock('@/lib/supabase/client', () => ({
           select: () => ({
             eq: () => ({
               order: mockSelect,
+            }),
+          }),
+          insert: mockChecklistItemsInsert,
+        }
+      }
+      if (table === 'checklist_templates') {
+        return {
+          select: vi.fn().mockReturnValue({
+            order: mockTemplatesSelect,
+          }),
+        }
+      }
+      if (table === 'checklist_template_items') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: mockTemplateItemsSelect,
             }),
           }),
         }
@@ -69,9 +97,17 @@ describe('ChecklistList', () => {
       data: { user: { id: 'test-user-id' } },
       error: null,
     })
-    mockInsert.mockResolvedValue({ data: null, error: null })
+    mockInsertSingle.mockImplementation((data) =>
+      Promise.resolve({
+        data: { id: 'new-checklist-id', ...data },
+        error: null,
+      })
+    )
     mockDelete.mockResolvedValue({ data: null, error: null })
     mockSelect.mockResolvedValue({ data: [], error: null })
+    mockTemplatesSelect.mockResolvedValue({ data: [], error: null })
+    mockTemplateItemsSelect.mockResolvedValue({ data: [], error: null })
+    mockChecklistItemsInsert.mockResolvedValue({ data: null, error: null })
   })
 
   it('should render empty state when no checklists', () => {
@@ -159,7 +195,7 @@ describe('ChecklistList', () => {
   })
 
   it('should show error when insert fails', async () => {
-    mockInsert.mockResolvedValue({
+    mockInsertSingle.mockResolvedValue({
       data: null,
       error: { message: 'Database error' },
     })
@@ -189,7 +225,7 @@ describe('ChecklistList', () => {
 
   it('should show Creating... while loading', async () => {
     // Slow down the mock to see loading state
-    mockInsert.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve({ data: null, error: null }), 100)))
+    mockInsertSingle.mockImplementation((data) => new Promise((resolve) => setTimeout(() => resolve({ data: { id: 'new-checklist-id', ...data }, error: null }), 100)))
 
     const user = userEvent.setup()
     render(<ChecklistList {...defaultProps} />)

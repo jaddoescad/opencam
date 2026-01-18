@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import type { ChecklistTemplate } from '@/types/database'
 
 interface CreateChecklistModalProps {
   isOpen: boolean
@@ -14,7 +15,36 @@ export function CreateChecklistModal({ isOpen, projectId, onClose, onCreated }: 
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<ChecklistTemplate[]>([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
   const supabase = createClient()
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchTemplates()
+    }
+  }, [isOpen])
+
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true)
+    const { data } = await supabase
+      .from('checklist_templates')
+      .select('*')
+      .order('name')
+    if (data) setTemplates(data)
+    setLoadingTemplates(false)
+  }
+
+  const handleTemplateChange = (templateId: string | null) => {
+    setSelectedTemplateId(templateId)
+    if (templateId) {
+      const template = templates.find(t => t.id === templateId)
+      if (template) setTitle(template.name)
+    } else {
+      setTitle('')
+    }
+  }
 
   if (!isOpen) return null
 
@@ -30,13 +60,15 @@ export function CreateChecklistModal({ isOpen, projectId, onClose, onCreated }: 
       return
     }
 
-    const { error: insertError } = await supabase
+    const { data: newChecklist, error: insertError } = await supabase
       .from('checklists')
       .insert({
         project_id: projectId,
         title,
         created_by: user.id,
       })
+      .select()
+      .single()
 
     if (insertError) {
       setError(insertError.message)
@@ -44,7 +76,31 @@ export function CreateChecklistModal({ isOpen, projectId, onClose, onCreated }: 
       return
     }
 
+    // Copy template items if a template was selected
+    if (selectedTemplateId && newChecklist) {
+      const { data: templateItems } = await supabase
+        .from('checklist_template_items')
+        .select('*')
+        .eq('checklist_template_id', selectedTemplateId)
+        .order('position')
+
+      if (templateItems && templateItems.length > 0) {
+        const items = templateItems.map((item) => ({
+          checklist_id: newChecklist.id,
+          content: item.content,
+          category: item.category,
+          position: item.position,
+          field_type: item.field_type,
+          notes: item.notes,
+          photos_required: item.photos_required,
+          options: item.options,
+        }))
+        await supabase.from('checklist_items').insert(items)
+      }
+    }
+
     setTitle('')
+    setSelectedTemplateId(null)
     onCreated()
     onClose()
     setLoading(false)
@@ -52,6 +108,7 @@ export function CreateChecklistModal({ isOpen, projectId, onClose, onCreated }: 
 
   const handleClose = () => {
     setTitle('')
+    setSelectedTemplateId(null)
     setError(null)
     onClose()
   }
@@ -69,6 +126,26 @@ export function CreateChecklistModal({ isOpen, projectId, onClose, onCreated }: 
                 {error}
               </div>
             )}
+
+            <div className="mb-4">
+              <label htmlFor="template" className="block text-sm font-medium text-gray-700">
+                Template
+              </label>
+              <select
+                id="template"
+                value={selectedTemplateId || ''}
+                onChange={(e) => handleTemplateChange(e.target.value || null)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
+                disabled={loadingTemplates}
+              >
+                <option value="">Start from scratch</option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700">

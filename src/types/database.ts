@@ -1,9 +1,17 @@
+export type Company = {
+  id: string
+  name: string
+  created_by: string | null
+  created_at: string
+}
+
 export type Profile = {
   id: string
   email: string | null
   full_name: string | null
   avatar_url: string | null
   role: 'Admin' | 'Standard' | 'Restricted' | null
+  company_id: string | null
   created_at: string
 }
 
@@ -18,6 +26,7 @@ export type Project = {
   postal_code: string | null
   country: string | null
   created_by: string | null
+  company_id: string | null
   created_at: string
   updated_at: string
   is_archived: boolean
@@ -78,6 +87,7 @@ export type ChecklistTemplate = {
   name: string
   description: string | null
   created_by: string | null
+  company_id: string | null
   created_at: string
   updated_at: string
 }
@@ -101,6 +111,7 @@ export type PageTemplate = {
   description: string | null
   content: string | null
   created_by: string | null
+  company_id: string | null
   created_at: string
   updated_at: string
 }
@@ -110,6 +121,7 @@ export type ProjectTemplate = {
   name: string
   description: string | null
   created_by: string | null
+  company_id: string | null
   created_at: string
   updated_at: string
 }
@@ -151,6 +163,19 @@ export type ProjectShare = {
   is_active: boolean
 }
 
+export type Invitation = {
+  id: string
+  email: string
+  role: string
+  invited_by: string | null
+  company_id: string | null
+  token: string
+  status: 'pending' | 'accepted' | 'expired'
+  created_at: string
+  expires_at: string
+  accepted_at: string | null
+}
+
 // Composite Types
 export type ProjectWithPhotos = Project & {
   photo_count?: number
@@ -162,3 +187,7 @@ export type PhotoWithUploader = Photo & {
 }
 
 export type FilterType = 'all' | 'my' | 'archived'
+
+export type ProfileWithCompany = Profile & {
+  company?: Company
+}

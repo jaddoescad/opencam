@@ -5,10 +5,11 @@ import { usePathname } from 'next/navigation'
 import { Sidebar } from './sidebar'
 import { UploadProvider, useUpload } from '@/contexts/upload-context'
 import { createClient } from '@/lib/supabase/client'
-import type { Profile } from '@/types/database'
+import type { Profile, Company } from '@/types/database'
 
 interface DashboardShellProps {
   user: Profile | null
+  company: Company | null
   children: React.ReactNode
 }
 
@@ -100,7 +101,7 @@ function CameraButton() {
   )
 }
 
-export function DashboardShell({ user, children }: DashboardShellProps) {
+export function DashboardShell({ user, company, children }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
 
@@ -113,7 +114,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
   return (
     <UploadProvider>
       <div className="flex h-screen bg-gray-100 overflow-hidden">
-        <Sidebar user={user} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar user={user} company={company} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         {/* Main content */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0">

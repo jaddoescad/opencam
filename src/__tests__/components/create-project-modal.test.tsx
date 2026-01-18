@@ -17,6 +17,7 @@ vi.mock('next/navigation', () => ({
 const mockGetUser = vi.fn()
 const mockInsert = vi.fn()
 const mockSelect = vi.fn()
+const mockProfileSelect = vi.fn()
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
@@ -28,6 +29,15 @@ vi.mock('@/lib/supabase/client', () => ({
         return {
           select: () => ({
             order: mockSelect,
+          }),
+        }
+      }
+      if (table === 'profiles') {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: mockProfileSelect,
+            }),
           }),
         }
       }
@@ -73,6 +83,10 @@ describe('CreateProjectModal', () => {
       error: null,
     })
     mockSelect.mockResolvedValue({ data: [], error: null })
+    mockProfileSelect.mockResolvedValue({
+      data: { company_id: 'test-company-id' },
+      error: null,
+    })
   })
 
   it('should not render when isOpen is false', () => {

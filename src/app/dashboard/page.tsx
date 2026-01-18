@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { ProjectCard } from '@/components/project-card'
 import { CreateProjectModal } from '@/components/create-project-modal'
 import { useCurrentUser, useProjects, useInfiniteScroll, type FilterType } from '@/hooks'
@@ -22,7 +23,15 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const { user, role: userRole, loading: userLoading } = useCurrentUser()
+  const router = useRouter()
+  const { user, profile, role: userRole, loading: userLoading } = useCurrentUser()
+
+  // Redirect to login if no profile exists
+  useEffect(() => {
+    if (!userLoading && !profile) {
+      router.push('/login')
+    }
+  }, [userLoading, profile, router])
 
   // Debounce search input by 300ms
   useEffect(() => {
@@ -140,7 +149,7 @@ export default function DashboardPage() {
               <p className="mt-1">Create a new project to get started</p>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+                className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 font-medium"
               >
                 Create your first project
               </button>

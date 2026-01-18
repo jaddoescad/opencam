@@ -64,6 +64,13 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
       return
     }
 
+    // Get the user's profile to get company_id
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+
     // Build full address string for display
     const addressParts = [addressLine1, addressLine2, city, state, postalCode].filter(Boolean)
     const fullAddress = addressParts.join(', ')
@@ -80,6 +87,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
         postal_code: postalCode || null,
         country: country || null,
         created_by: user.id,
+        company_id: profile?.company_id,
       })
       .select()
       .single()

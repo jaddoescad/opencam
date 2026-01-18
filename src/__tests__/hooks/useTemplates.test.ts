@@ -9,6 +9,7 @@ const mockChecklistTemplatesOrder = vi.fn()
 const mockPageTemplatesOrder = vi.fn()
 const mockInsertSingle = vi.fn()
 const mockDelete = vi.fn()
+const mockProfileSelect = vi.fn()
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
@@ -16,6 +17,15 @@ vi.mock('@/lib/supabase/client', () => ({
       getUser: mockGetUser,
     },
     from: vi.fn().mockImplementation((table) => {
+      if (table === 'profiles') {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: mockProfileSelect,
+            }),
+          }),
+        }
+      }
       if (table === 'project_templates') {
         return {
           select: () => ({
@@ -105,6 +115,10 @@ describe('useTemplates', () => {
     mockPageTemplatesOrder.mockResolvedValue({ data: [], error: null })
     mockInsertSingle.mockResolvedValue({ data: null, error: null })
     mockDelete.mockResolvedValue({ data: null, error: null })
+    mockProfileSelect.mockResolvedValue({
+      data: { company_id: 'test-company-id' },
+      error: null,
+    })
   })
 
   it('should return initial loading state', () => {

@@ -12,7 +12,7 @@ export default function TemplatesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const router = useRouter()
-  const { role, loading: userLoading } = useCurrentUser()
+  const { role, profile, loading: userLoading, error: userError } = useCurrentUser()
   const {
     projectTemplates,
     checklistTemplates,
@@ -22,15 +22,17 @@ export default function TemplatesPage() {
     deleteTemplate,
   } = useTemplates()
 
-  // Derived authorization state
-  const authorized = !userLoading && role !== null && role !== 'Restricted'
-
   // Check if user has permission to view this page
   useEffect(() => {
-    if (!userLoading && role === 'Restricted') {
-      router.push('/dashboard')
+    if (!userLoading) {
+      if (!profile) {
+        // No profile - redirect to login
+        router.push('/login')
+      } else if (role === 'Restricted') {
+        router.push('/dashboard')
+      }
     }
-  }, [role, userLoading, router])
+  }, [role, profile, userLoading, router])
 
   const handleCreateTemplate = async () => {
     const result = await createTemplate(activeTab as TemplateType)
@@ -90,11 +92,29 @@ export default function TemplatesPage() {
 
   const templates = getCurrentTemplates()
 
-  // Don't render until we confirm authorization
-  if (userLoading || !authorized) {
+  // Show loading while checking auth
+  if (userLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-gray-500">Loading...</div>
+      </div>
+    )
+  }
+
+  // Show error if user fetch failed
+  if (userError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-red-500">Error: {userError.message}</div>
+      </div>
+    )
+  }
+
+  // Don't render if not authorized (redirect will happen via useEffect)
+  if (!profile || role === 'Restricted') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Redirecting...</div>
       </div>
     )
   }

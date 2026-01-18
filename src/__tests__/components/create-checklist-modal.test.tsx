@@ -6,6 +6,10 @@ import { CreateChecklistModal } from '@/components/create-checklist-modal'
 // Mock Supabase client
 const mockGetUser = vi.fn()
 const mockInsert = vi.fn()
+const mockInsertSingle = vi.fn()
+const mockTemplatesSelect = vi.fn()
+const mockTemplateItemsSelect = vi.fn()
+const mockChecklistItemsInsert = vi.fn()
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
@@ -15,7 +19,35 @@ vi.mock('@/lib/supabase/client', () => ({
     from: vi.fn().mockImplementation((table) => {
       if (table === 'checklists') {
         return {
-          insert: mockInsert,
+          insert: vi.fn().mockImplementation((data) => {
+            mockInsert(data)
+            return {
+              select: vi.fn().mockReturnValue({
+                single: () => mockInsertSingle(data),
+              }),
+            }
+          }),
+        }
+      }
+      if (table === 'checklist_templates') {
+        return {
+          select: vi.fn().mockReturnValue({
+            order: mockTemplatesSelect,
+          }),
+        }
+      }
+      if (table === 'checklist_template_items') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: mockTemplateItemsSelect,
+            }),
+          }),
+        }
+      }
+      if (table === 'checklist_items') {
+        return {
+          insert: mockChecklistItemsInsert,
         }
       }
       return {}
@@ -39,8 +71,22 @@ describe('CreateChecklistModal', () => {
       data: { user: { id: 'user-1' } },
       error: null,
     })
-    mockInsert.mockResolvedValue({
-      data: { id: 'new-checklist-id' },
+    mockInsertSingle.mockImplementation((data) =>
+      Promise.resolve({
+        data: { id: 'new-checklist-id', ...data },
+        error: null,
+      })
+    )
+    mockTemplatesSelect.mockResolvedValue({
+      data: [],
+      error: null,
+    })
+    mockTemplateItemsSelect.mockResolvedValue({
+      data: [],
+      error: null,
+    })
+    mockChecklistItemsInsert.mockResolvedValue({
+      data: null,
       error: null,
     })
   })
@@ -128,8 +174,8 @@ describe('CreateChecklistModal', () => {
   it('should show Creating... while submitting', async () => {
     const user = userEvent.setup()
 
-    mockInsert.mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve({ data: { id: 'new-checklist-id' }, error: null }), 100))
+    mockInsertSingle.mockImplementation(
+      (data) => new Promise((resolve) => setTimeout(() => resolve({ data: { id: 'new-checklist-id', ...data }, error: null }), 100))
     )
 
     render(<CreateChecklistModal {...defaultProps} />)
@@ -166,7 +212,7 @@ describe('CreateChecklistModal', () => {
   })
 
   it('should show error message on insert error', async () => {
-    mockInsert.mockResolvedValue({
+    mockInsertSingle.mockResolvedValue({
       data: null,
       error: { message: 'Database error occurred' },
     })
@@ -188,8 +234,8 @@ describe('CreateChecklistModal', () => {
   it('should disable submit button while creating', async () => {
     const user = userEvent.setup()
 
-    mockInsert.mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve({ data: { id: 'new-checklist-id' }, error: null }), 100))
+    mockInsertSingle.mockImplementation(
+      (data) => new Promise((resolve) => setTimeout(() => resolve({ data: { id: 'new-checklist-id', ...data }, error: null }), 100))
     )
 
     render(<CreateChecklistModal {...defaultProps} />)
@@ -208,7 +254,7 @@ describe('CreateChecklistModal', () => {
   })
 
   it('should clear error on subsequent open', async () => {
-    mockInsert.mockResolvedValue({
+    mockInsertSingle.mockResolvedValue({
       data: null,
       error: { message: 'Database error' },
     })
@@ -231,5 +277,164 @@ describe('CreateChecklistModal', () => {
 
     // Error should be cleared
     expect(screen.queryByText('Database error')).not.toBeInTheDocument()
+  })
+
+  describe('Template selection', () => {
+    it('should render template dropdown', async () => {
+      render(<CreateChecklistModal {...defaultProps} />)
+
+      expect(screen.getByLabelText('Template')).toBeInTheDocument()
+      expect(screen.getByText('Start from scratch')).toBeInTheDocument()
+    })
+
+    it('should display fetched templates in dropdown', async () => {
+      mockTemplatesSelect.mockResolvedValue({
+        data: [
+          { id: 'template-1', name: 'Safety Checklist', description: null },
+          { id: 'template-2', name: 'Inspection Checklist', description: null },
+        ],
+        error: null,
+      })
+
+      render(<CreateChecklistModal {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Safety Checklist')).toBeInTheDocument()
+        expect(screen.getByText('Inspection Checklist')).toBeInTheDocument()
+      })
+    })
+
+    it('should auto-fill title when template is selected', async () => {
+      const user = userEvent.setup()
+      mockTemplatesSelect.mockResolvedValue({
+        data: [
+          { id: 'template-1', name: 'Safety Checklist', description: null },
+        ],
+        error: null,
+      })
+
+      render(<CreateChecklistModal {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Safety Checklist')).toBeInTheDocument()
+      })
+
+      const dropdown = screen.getByLabelText('Template')
+      await user.selectOptions(dropdown, 'template-1')
+
+      expect(screen.getByLabelText('Title')).toHaveValue('Safety Checklist')
+    })
+
+    it('should clear title when switching back to start from scratch', async () => {
+      const user = userEvent.setup()
+      mockTemplatesSelect.mockResolvedValue({
+        data: [
+          { id: 'template-1', name: 'Safety Checklist', description: null },
+        ],
+        error: null,
+      })
+
+      render(<CreateChecklistModal {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Safety Checklist')).toBeInTheDocument()
+      })
+
+      const dropdown = screen.getByLabelText('Template')
+      await user.selectOptions(dropdown, 'template-1')
+      expect(screen.getByLabelText('Title')).toHaveValue('Safety Checklist')
+
+      await user.selectOptions(dropdown, '')
+      expect(screen.getByLabelText('Title')).toHaveValue('')
+    })
+
+    it('should copy template items when creating checklist from template', async () => {
+      const user = userEvent.setup()
+      mockTemplatesSelect.mockResolvedValue({
+        data: [
+          { id: 'template-1', name: 'Safety Checklist', description: null },
+        ],
+        error: null,
+      })
+      mockTemplateItemsSelect.mockResolvedValue({
+        data: [
+          {
+            id: 'item-1',
+            checklist_template_id: 'template-1',
+            content: 'Check fire extinguisher',
+            category: 'Safety',
+            position: 0,
+            field_type: 'checkbox',
+            notes: 'Check monthly',
+            photos_required: true,
+            options: null,
+          },
+          {
+            id: 'item-2',
+            checklist_template_id: 'template-1',
+            content: 'Test emergency lights',
+            category: 'Safety',
+            position: 1,
+            field_type: 'yes_no',
+            notes: null,
+            photos_required: false,
+            options: null,
+          },
+        ],
+        error: null,
+      })
+
+      render(<CreateChecklistModal {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Safety Checklist')).toBeInTheDocument()
+      })
+
+      const dropdown = screen.getByLabelText('Template')
+      await user.selectOptions(dropdown, 'template-1')
+      await user.click(screen.getByText('Create'))
+
+      await waitFor(() => {
+        expect(mockOnCreated).toHaveBeenCalled()
+      })
+
+      expect(mockChecklistItemsInsert).toHaveBeenCalledWith([
+        {
+          checklist_id: 'new-checklist-id',
+          content: 'Check fire extinguisher',
+          category: 'Safety',
+          position: 0,
+          field_type: 'checkbox',
+          notes: 'Check monthly',
+          photos_required: true,
+          options: null,
+        },
+        {
+          checklist_id: 'new-checklist-id',
+          content: 'Test emergency lights',
+          category: 'Safety',
+          position: 1,
+          field_type: 'yes_no',
+          notes: null,
+          photos_required: false,
+          options: null,
+        },
+      ])
+    })
+
+    it('should not copy items when creating checklist from scratch', async () => {
+      const user = userEvent.setup()
+      render(<CreateChecklistModal {...defaultProps} />)
+
+      const input = screen.getByLabelText('Title')
+      await user.type(input, 'My Custom Checklist')
+      await user.click(screen.getByText('Create'))
+
+      await waitFor(() => {
+        expect(mockOnCreated).toHaveBeenCalled()
+      })
+
+      expect(mockChecklistItemsInsert).not.toHaveBeenCalled()
+    })
   })
 })

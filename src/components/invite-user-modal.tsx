@@ -56,14 +56,15 @@ export function InviteUserModal({ isOpen, onClose, onInvited }: InviteUserModalP
       return
     }
 
-    // Get the inviter's profile for the email
+    // Get the inviter's profile for the email and company_id
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name')
+      .select('full_name, company_id')
       .eq('id', user.id)
       .single()
 
     const inviterName = profile?.full_name || 'A team member'
+    const companyId = profile?.company_id
     const links: string[] = []
 
     for (const invite of validInvites) {
@@ -73,6 +74,7 @@ export function InviteUserModal({ isOpen, onClose, onInvited }: InviteUserModalP
           email: invite.email,
           role: invite.role,
           invited_by: user.id,
+          company_id: companyId,
         })
         .select()
         .single()

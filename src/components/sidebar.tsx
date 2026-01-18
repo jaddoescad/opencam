@@ -4,15 +4,16 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import type { Profile } from '@/types/database'
+import type { Profile, Company } from '@/types/database'
 
 interface SidebarProps {
   user: Profile | null
+  company: Company | null
   isOpen?: boolean
   onClose?: () => void
 }
 
-export function Sidebar({ user, isOpen = true, onClose }: SidebarProps) {
+export function Sidebar({ user, company, isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -135,7 +136,7 @@ export function Sidebar({ user, isOpen = true, onClose }: SidebarProps) {
         {/* Company Name */}
         <div className="px-4 py-2">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            {user?.full_name || 'My Company'}
+            {company?.name || 'My Company'}
           </p>
         </div>
 
