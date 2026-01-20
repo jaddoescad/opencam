@@ -216,7 +216,7 @@ export function PhotoAnnotationEditor({
       </div>
 
       {/* Canvas Container */}
-      <div className="flex-1 overflow-hidden p-4">
+      <div className="flex-1 min-h-0 p-4">
         {loading && !initialized ? (
           <div className="w-full h-full flex items-center justify-center text-white">
             Loading...

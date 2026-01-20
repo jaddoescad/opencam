@@ -121,6 +121,7 @@ export function exportCanvasToDataUrl(
 
 /**
  * Custom serialization to include annotation metadata
+ * Canvas is always at original image resolution, so no scaling needed
  */
 export function serializeCanvas(canvas: Canvas): Record<string, unknown> {
   const json = canvas.toJSON()
@@ -133,11 +134,12 @@ export function serializeCanvas(canvas: Canvas): Record<string, unknown> {
 
 /**
  * Load annotations from JSON into the canvas
+ * No scaling needed since canvas is at original resolution
  */
 export async function loadAnnotationsFromJson(
   canvas: Canvas,
   json: Record<string, unknown>,
-  fabric: typeof import('fabric')
+  _fabric: typeof import('fabric')
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     canvas.loadFromJSON(json, () => {
