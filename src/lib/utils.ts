@@ -51,6 +51,6 @@ export function getInitials(name: string | null): string {
     .slice(0, 2)
 }
 
-export function getPhotoUrl(storagePath: string): string {
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${storagePath}`
+export function getPhotoUrl(storagePath: string, bucket: string = 'photos'): string {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${storagePath}`
 }

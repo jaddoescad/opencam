@@ -41,8 +41,7 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
     const tempObjectRef = useRef<FabricObject | null>(null)
 
     const [isReady, setIsReady] = useState(false)
-    const [imageLoaded, setImageLoaded] = useState(false)
-    const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null)
+    const [canvasSize, setCanvasSize] = useState<{ width: number; height: number; scale: number } | null>(null)
 
     // Expose methods to parent
     useImperativeHandle(ref, () => ({
@@ -89,23 +88,40 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
       }
     }, [onStateChange])
 
-    // Preload image to get dimensions
+    // Load image and calculate canvas size
     useEffect(() => {
       const img = new Image()
       img.crossOrigin = 'anonymous'
+
       img.onload = () => {
-        setImageDimensions({ width: img.width, height: img.height })
-        setImageLoaded(true)
+        // Use most of the viewport for the canvas
+        const maxWidth = window.innerWidth - 64
+        const maxHeight = window.innerHeight - 250 // Account for header, toolbar, footer
+
+        const imgAspect = img.width / img.height
+        let width = maxWidth
+        let height = maxWidth / imgAspect
+
+        if (height > maxHeight) {
+          height = maxHeight
+          width = maxHeight * imgAspect
+        }
+
+        const scale = width / img.width
+
+        setCanvasSize({ width, height, scale })
       }
+
       img.onerror = () => {
         console.error('Failed to load image:', imageUrl)
       }
+
       img.src = imageUrl
     }, [imageUrl])
 
-    // Initialize Fabric.js canvas after image is loaded
+    // Initialize Fabric.js canvas after size is calculated
     useEffect(() => {
-      if (!imageLoaded || !imageDimensions || !canvasRef.current || !containerRef.current) return
+      if (!canvasSize || !canvasRef.current) return
 
       let mounted = true
 
@@ -115,22 +131,6 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
 
         fabricRef.current = fabric
 
-        // Calculate canvas size to fit container
-        const containerRect = containerRef.current!.getBoundingClientRect()
-        const maxWidth = containerRect.width - 32 // padding
-        const maxHeight = containerRect.height - 32
-
-        const imgAspect = imageDimensions.width / imageDimensions.height
-        let canvasWidth = maxWidth
-        let canvasHeight = maxWidth / imgAspect
-
-        if (canvasHeight > maxHeight) {
-          canvasHeight = maxHeight
-          canvasWidth = maxHeight * imgAspect
-        }
-
-        const scale = canvasWidth / imageDimensions.width
-
         // Dispose existing canvas
         if (fabricCanvasRef.current) {
           fabricCanvasRef.current.dispose()
@@ -138,9 +138,9 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
 
         // Create canvas
         const canvas = new fabric.Canvas(canvasRef.current!, {
-          width: canvasWidth,
-          height: canvasHeight,
-          backgroundColor: '#1f2937',
+          width: canvasSize.width,
+          height: canvasSize.height,
+          backgroundColor: '#000',
         })
 
         fabricCanvasRef.current = canvas
@@ -155,7 +155,7 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
             selectable: false,
             evented: false,
           })
-          fabricImage.scale(scale)
+          fabricImage.scale(canvasSize.scale)
           canvas.backgroundImage = fabricImage
           canvas.renderAll()
 
@@ -183,7 +183,7 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
       return () => {
         mounted = false
       }
-    }, [imageLoaded, imageDimensions, imageUrl, existingAnnotation, saveState])
+    }, [canvasSize, imageUrl, existingAnnotation, saveState])
 
     // Cleanup on unmount
     useEffect(() => {
@@ -320,24 +320,17 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
     return (
       <div
         ref={containerRef}
-        className="w-full h-full flex items-center justify-center relative"
+        className="w-full h-full flex items-center justify-center"
       >
-        {!isReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-            {imageLoaded ? (
-              <span className="text-white">Initializing editor...</span>
-            ) : (
-              <img
-                src={imageUrl}
-                alt="Loading..."
-                className="max-w-full max-h-full object-contain opacity-50"
-              />
-            )}
-          </div>
+        {!canvasSize && (
+          <div className="text-white">Loading image...</div>
+        )}
+        {canvasSize && !isReady && (
+          <div className="text-white">Initializing editor...</div>
         )}
         <canvas
           ref={canvasRef}
-          className={isReady ? '' : 'invisible'}
+          style={{ display: isReady ? 'block' : 'none' }}
         />
       </div>
     )

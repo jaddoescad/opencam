@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { getStorage } from '@/lib/storage'
 
 interface UploadProgress {
   current: number
@@ -30,6 +31,7 @@ export function usePhotoUpload(onUploadComplete?: () => void): UsePhotoUploadRes
 
     try {
       const supabase = createClient()
+      const storage = getStorage()
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
@@ -42,12 +44,9 @@ export function usePhotoUpload(onUploadComplete?: () => void): UsePhotoUploadRes
       let uploaded = 0
 
       for (const file of files) {
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${projectId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const storagePath = storage.generatePath(projectId, file.name)
 
-        const { error: uploadError } = await supabase.storage
-          .from('photos')
-          .upload(fileName, file)
+        const { error: uploadError } = await storage.upload('photos', storagePath, file)
 
         if (uploadError) {
           setError(`Failed to upload ${file.name}: ${uploadError.message}`)
@@ -59,7 +58,7 @@ export function usePhotoUpload(onUploadComplete?: () => void): UsePhotoUploadRes
           .insert({
             project_id: projectId,
             uploaded_by: user.id,
-            storage_path: fileName,
+            storage_path: storagePath,
           })
 
         if (insertError) {

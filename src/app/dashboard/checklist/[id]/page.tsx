@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
+import { getStorage } from '@/lib/storage'
 import type { Checklist, ChecklistItem, ChecklistItemPhoto, ChecklistItemQuestion } from '@/types/database'
 
 interface ChecklistPageProps {
@@ -331,6 +332,7 @@ function ChecklistFieldItem({ item, onToggle }: ChecklistFieldItemProps) {
     if (!files || files.length === 0) return
 
     setUploading(true)
+    const storage = getStorage()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       setUploading(false)
@@ -338,18 +340,15 @@ function ChecklistFieldItem({ item, onToggle }: ChecklistFieldItemProps) {
     }
 
     for (const file of Array.from(files)) {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${item.id}/${Date.now()}.${fileExt}`
+      const storagePath = storage.generatePath(item.id, file.name)
 
-      const { error: uploadError } = await supabase.storage
-        .from('photos')
-        .upload(fileName, file)
+      const { error: uploadError } = await storage.upload('photos', storagePath, file)
 
       if (!uploadError) {
         await supabase.from('checklist_item_photos').insert({
           checklist_item_id: item.id,
           uploaded_by: user.id,
-          storage_path: fileName,
+          storage_path: storagePath,
         })
       }
     }
@@ -362,7 +361,8 @@ function ChecklistFieldItem({ item, onToggle }: ChecklistFieldItemProps) {
   const handleDeletePhoto = async (photo: ChecklistItemPhoto) => {
     if (!confirm('Delete this photo?')) return
 
-    await supabase.storage.from('photos').remove([photo.storage_path])
+    const storage = getStorage()
+    await storage.remove('photos', [photo.storage_path])
     await supabase.from('checklist_item_photos').delete().eq('id', photo.id)
     await fetchPhotos()
     setSelectedPhoto(null)
@@ -378,8 +378,8 @@ function ChecklistFieldItem({ item, onToggle }: ChecklistFieldItemProps) {
   }
 
   const getPhotoUrl = (path: string) => {
-    const { data } = supabase.storage.from('photos').getPublicUrl(path)
-    return data.publicUrl
+    const storage = getStorage()
+    return storage.getPublicUrl('photos', path)
   }
 
   // Check if item can be completed

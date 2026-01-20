@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { createPageInputSchema, useZodForm } from '@/lib/validation'
 import type { PageTemplate } from '@/types/database'
 
 interface CreatePageModalProps {
@@ -20,6 +21,7 @@ export function CreatePageModal({ isOpen, projectId, onClose, onCreated }: Creat
   const [loadingTemplates, setLoadingTemplates] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { errors, validate, clearErrors } = useZodForm(createPageInputSchema)
 
   useEffect(() => {
     if (isOpen) {
@@ -51,7 +53,16 @@ export function CreatePageModal({ isOpen, projectId, onClose, onCreated }: Creat
 
   const handleCreatePage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!pageName.trim()) return
+
+    const formData = {
+      name: pageName,
+      templateId: selectedTemplateId || undefined,
+    }
+
+    const result = validate(formData)
+    if (!result.success) {
+      return
+    }
 
     setCreating(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -90,6 +101,7 @@ export function CreatePageModal({ isOpen, projectId, onClose, onCreated }: Creat
   const handleClose = () => {
     setPageName('')
     setSelectedTemplateId(null)
+    clearErrors()
     onClose()
   }
 
@@ -127,12 +139,16 @@ export function CreatePageModal({ isOpen, projectId, onClose, onCreated }: Creat
               <input
                 id="pageName"
                 type="text"
-                required
                 value={pageName}
                 onChange={(e) => setPageName(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 ${
+                  errors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="e.g., Site Notes, Daily Report"
               />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              )}
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <button

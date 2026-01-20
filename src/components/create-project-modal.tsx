@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { createProjectInputSchema, useZodForm } from '@/lib/validation'
 import type { ProjectTemplate } from '@/types/database'
 
 interface CreateProjectModalProps {
@@ -31,6 +32,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
+  const { errors, validate, clearErrors } = useZodForm(createProjectInputSchema)
 
   useEffect(() => {
     if (isOpen) {
@@ -53,6 +55,22 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const formData = {
+      name,
+      addressLine1: addressLine1 || undefined,
+      city: city || undefined,
+      state: state || undefined,
+      postalCode: postalCode || undefined,
+      country: country || undefined,
+      templateId: selectedTemplateId || undefined,
+    }
+
+    const result = validate(formData)
+    if (!result.success) {
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -199,10 +217,12 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
     setPostalCode('')
     setCountry('Canada')
     setSelectedTemplateId('')
+    clearErrors()
   }
 
   const handleClose = () => {
     resetForm()
+    setError(null)
     onClose()
   }
 
@@ -229,12 +249,16 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                 <input
                   id="name"
                   type="text"
-                  required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="block w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400"
+                  className={`block w-full px-4 py-3 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400 ${
+                    errors.name ? 'border-red-500' : 'border-gray-200'
+                  }`}
                   placeholder="Project Name"
                 />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                )}
               </div>
 
               {/* Address */}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { createChecklistInputSchema, useZodForm } from '@/lib/validation'
 import type { ChecklistTemplate } from '@/types/database'
 
 interface CreateChecklistModalProps {
@@ -19,6 +20,7 @@ export function CreateChecklistModal({ isOpen, projectId, onClose, onCreated }: 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
   const [loadingTemplates, setLoadingTemplates] = useState(false)
   const supabase = createClient()
+  const { errors, validate, clearErrors } = useZodForm(createChecklistInputSchema)
 
   useEffect(() => {
     if (isOpen) {
@@ -50,6 +52,17 @@ export function CreateChecklistModal({ isOpen, projectId, onClose, onCreated }: 
 
   const handleCreateChecklist = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const formData = {
+      title,
+      templateId: selectedTemplateId || undefined,
+    }
+
+    const result = validate(formData)
+    if (!result.success) {
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -110,6 +123,7 @@ export function CreateChecklistModal({ isOpen, projectId, onClose, onCreated }: 
     setTitle('')
     setSelectedTemplateId(null)
     setError(null)
+    clearErrors()
     onClose()
   }
 
@@ -154,12 +168,16 @@ export function CreateChecklistModal({ isOpen, projectId, onClose, onCreated }: 
               <input
                 id="title"
                 type="text"
-                required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 ${
+                  errors.title ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="e.g., Site Inspection Checklist"
               />
+              {errors.title && (
+                <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+              )}
             </div>
 
             <div className="mt-6 flex justify-end gap-3">

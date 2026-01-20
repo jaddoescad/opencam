@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { emailSchema } from '@/lib/validation'
 
 interface InviteUserModalProps {
   isOpen: boolean
@@ -19,6 +20,7 @@ export function InviteUserModal({ isOpen, onClose, onInvited }: InviteUserModalP
   const [invites, setInvites] = useState<InviteEntry[]>([{ email: '', role: 'Restricted' }])
   const [loading, setLoading] = useState(false)
   const [inviteLinks, setInviteLinks] = useState<string[]>([])
+  const [emailErrors, setEmailErrors] = useState<Record<number, string>>({})
   const supabase = createClient()
 
   if (!isOpen) return null
@@ -27,6 +29,28 @@ export function InviteUserModal({ isOpen, onClose, onInvited }: InviteUserModalP
     const newInvites = [...invites]
     newInvites[index][field] = value
     setInvites(newInvites)
+
+    // Validate email on change
+    if (field === 'email') {
+      if (value.trim() === '') {
+        setEmailErrors((prev) => {
+          const next = { ...prev }
+          delete next[index]
+          return next
+        })
+      } else {
+        const result = emailSchema.safeParse(value)
+        if (!result.success) {
+          setEmailErrors((prev) => ({ ...prev, [index]: result.error.issues[0].message }))
+        } else {
+          setEmailErrors((prev) => {
+            const next = { ...prev }
+            delete next[index]
+            return next
+          })
+        }
+      }
+    }
   }
 
   const addInvite = () => {
@@ -39,7 +63,10 @@ export function InviteUserModal({ isOpen, onClose, onInvited }: InviteUserModalP
     }
   }
 
-  const validInvites = invites.filter((inv) => inv.email.includes('@'))
+  const validInvites = invites.filter((inv) => {
+    const result = emailSchema.safeParse(inv.email)
+    return result.success
+  })
 
   const handleNextStep = () => {
     if (step === 1 && validInvites.length > 0) {
@@ -113,6 +140,7 @@ export function InviteUserModal({ isOpen, onClose, onInvited }: InviteUserModalP
     setStep(1)
     setInvites([{ email: '', role: 'Restricted' }])
     setInviteLinks([])
+    setEmailErrors({})
   }
 
   const copyAllLinks = () => {
@@ -182,25 +210,32 @@ export function InviteUserModal({ isOpen, onClose, onInvited }: InviteUserModalP
               <p className="text-gray-600 mb-6">Enter the email addresses of the people you want to invite.</p>
               <div className="space-y-3">
                 {invites.map((invite, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="flex-1 relative">
-                      <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      <input
-                        type="email"
-                        value={invite.email}
-                        onChange={(e) => updateInvite(index, 'email', e.target.value)}
-                        placeholder="email@example.com"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    {invites.length > 1 && (
-                      <button onClick={() => removeInvite(index)} className="p-2 text-gray-400 hover:text-gray-600">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <div key={index}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 relative">
+                        <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
-                      </button>
+                        <input
+                          type="email"
+                          value={invite.email}
+                          onChange={(e) => updateInvite(index, 'email', e.target.value)}
+                          placeholder="email@example.com"
+                          className={`w-full pl-12 pr-4 py-3 border rounded-lg text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                            emailErrors[index] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                      {invites.length > 1 && (
+                        <button onClick={() => removeInvite(index)} className="p-2 text-gray-400 hover:text-gray-600">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    {emailErrors[index] && (
+                      <p className="mt-1 text-sm text-red-600 ml-1">{emailErrors[index]}</p>
                     )}
                   </div>
                 ))}
