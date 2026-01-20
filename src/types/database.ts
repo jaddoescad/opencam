@@ -163,6 +163,16 @@ export type ProjectShare = {
   is_active: boolean
 }
 
+export type PhotoAnnotation = {
+  id: string
+  photo_id: string
+  annotation_data: Record<string, unknown>  // Fabric.js JSON
+  flattened_path: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type Invitation = {
   id: string
   email: string
@@ -184,6 +194,7 @@ export type ProjectWithPhotos = Project & {
 
 export type PhotoWithUploader = Photo & {
   uploader?: Profile
+  annotation?: PhotoAnnotation | null
 }
 
 export type FilterType = 'all' | 'my' | 'archived'

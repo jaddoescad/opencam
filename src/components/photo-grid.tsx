@@ -2,9 +2,11 @@
 
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { getStorage } from '@/lib/storage'
 import { getInitials, getPhotoUrl } from '@/lib/utils'
 import { useKeyboardNavigation } from '@/hooks'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { PhotoAnnotationEditor } from '@/components/photo-annotation'
 import type { PhotoWithUploader } from '@/types/database'
 
 interface PhotoGridProps {
@@ -72,6 +74,7 @@ function formatTime(dateString: string): string {
 export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoWithUploader | null>(null)
   const [photoToDelete, setPhotoToDelete] = useState<PhotoWithUploader | null>(null)
+  const [annotatingPhoto, setAnnotatingPhoto] = useState<PhotoWithUploader | null>(null)
   const [deleting, setDeleting] = useState(false)
   const supabase = createClient()
 
@@ -114,9 +117,8 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
     setDeleting(true)
 
     // Delete from storage
-    const { error: storageError } = await supabase.storage
-      .from('photos')
-      .remove([photoToDelete.storage_path])
+    const storage = getStorage()
+    const { error: storageError } = await storage.remove('photos', [photoToDelete.storage_path])
 
     if (storageError) {
       console.error('Error deleting from storage:', storageError)
@@ -175,10 +177,20 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
                     onClick={() => setSelectedPhoto(photo)}
                   >
                     <img
-                      src={getPhotoUrl(photo.storage_path)}
+                      src={getPhotoUrl(photo.annotation?.flattened_path || photo.storage_path)}
                       alt={photo.caption || 'Project photo'}
                       className="w-full h-full object-cover"
                     />
+                    {/* Annotation indicator badge */}
+                    {photo.annotation && (
+                      <div className="absolute top-2 right-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center shadow-lg" title="Has annotations">
+                          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
                     {/* User avatar overlay */}
                     {photo.uploader && (
                       <div className="absolute bottom-2 left-2">
@@ -253,7 +265,7 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={getPhotoUrl(selectedPhoto.storage_path)}
+              src={getPhotoUrl(selectedPhoto.annotation?.flattened_path || selectedPhoto.storage_path)}
               alt={selectedPhoto.caption || 'Project photo'}
               className="max-w-full max-h-[70vh] object-contain"
             />
@@ -276,6 +288,15 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
                     {photos.findIndex(p => p.id === selectedPhoto.id) + 1} / {photos.length}
                   </span>
                 )}
+                <button
+                  onClick={() => {
+                    setAnnotatingPhoto(selectedPhoto)
+                    setSelectedPhoto(null)
+                  }}
+                  className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 rounded cursor-pointer"
+                >
+                  Annotate
+                </button>
                 <button
                   onClick={() => handleDeleteRequest(selectedPhoto)}
                   disabled={deleting}
@@ -301,6 +322,19 @@ export function PhotoGrid({ photos, projectId, onPhotosChange }: PhotoGridProps)
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />
+
+      {/* Photo Annotation Editor */}
+      {annotatingPhoto && (
+        <PhotoAnnotationEditor
+          photo={annotatingPhoto}
+          projectId={projectId}
+          onClose={() => setAnnotatingPhoto(null)}
+          onSaved={() => {
+            setAnnotatingPhoto(null)
+            onPhotosChange()
+          }}
+        />
+      )}
     </>
   )
 }

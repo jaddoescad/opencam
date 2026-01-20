@@ -49,14 +49,22 @@ export function useProjectData(projectId: string): UseProjectDataResult {
       .from('photos')
       .select(`
         *,
-        uploader:profiles(*)
+        uploader:profiles(*),
+        annotation:photo_annotations(*)
       `)
       .eq('project_id', projectId)
       .order('created_at', { ascending: false })
 
     if (photosError) throw photosError
-    setPhotos((data as PhotoWithUploader[]) || [])
-    return data
+    // Transform the annotation array to a single object (or null)
+    const photosWithAnnotations = (data || []).map((photo: Record<string, unknown>) => ({
+      ...photo,
+      annotation: Array.isArray(photo.annotation) && photo.annotation.length > 0
+        ? photo.annotation[0]
+        : null,
+    }))
+    setPhotos(photosWithAnnotations as PhotoWithUploader[])
+    return photosWithAnnotations
   }, [projectId])
 
   const fetchMembers = useCallback(async () => {
