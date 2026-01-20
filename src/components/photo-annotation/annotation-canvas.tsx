@@ -35,13 +35,13 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const fabricCanvasRef = useRef<FabricCanvas | null>(null)
     const fabricRef = useRef<typeof import('fabric') | null>(null)
-    const containerRef = useRef<HTMLDivElement>(null)
     const isDrawingRef = useRef(false)
     const startPointRef = useRef<{ x: number; y: number } | null>(null)
     const tempObjectRef = useRef<FabricObject | null>(null)
+    const scaleRef = useRef(1)
 
     const [isReady, setIsReady] = useState(false)
-    const [canvasSize, setCanvasSize] = useState<{ width: number; height: number; scale: number } | null>(null)
+    const [canvasSize, setCanvasSize] = useState<{ width: number; height: number } | null>(null)
 
     // Expose methods to parent
     useImperativeHandle(ref, () => ({
@@ -52,6 +52,7 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
       },
       toDataURL: () => {
         if (!fabricCanvasRef.current) return ''
+        // Export at the scale that includes the background
         return fabricCanvasRef.current.toDataURL({
           format: 'png',
           quality: 1,
@@ -60,8 +61,9 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
       },
       clear: () => {
         if (!fabricCanvasRef.current) return
+        // Keep only the background image (first object)
         const objects = fabricCanvasRef.current.getObjects()
-        objects.forEach((obj) => {
+        objects.slice(1).forEach((obj) => {
           fabricCanvasRef.current?.remove(obj)
         })
         fabricCanvasRef.current.renderAll()
@@ -72,7 +74,10 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
         const activeObjects = fabricCanvasRef.current.getActiveObjects()
         if (activeObjects.length > 0) {
           activeObjects.forEach((obj) => {
-            fabricCanvasRef.current?.remove(obj)
+            // Don't delete the background image
+            if (obj !== fabricCanvasRef.current?.getObjects()[0]) {
+              fabricCanvasRef.current?.remove(obj)
+            }
           })
           fabricCanvasRef.current.discardActiveObject()
           fabricCanvasRef.current.renderAll()
@@ -94,22 +99,20 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
       img.crossOrigin = 'anonymous'
 
       img.onload = () => {
-        // Use most of the viewport for the canvas
         const maxWidth = window.innerWidth - 64
-        const maxHeight = window.innerHeight - 250 // Account for header, toolbar, footer
+        const maxHeight = window.innerHeight - 250
 
         const imgAspect = img.width / img.height
-        let width = maxWidth
-        let height = maxWidth / imgAspect
+        let width = Math.min(maxWidth, img.width)
+        let height = width / imgAspect
 
         if (height > maxHeight) {
           height = maxHeight
-          width = maxHeight * imgAspect
+          width = height * imgAspect
         }
 
-        const scale = width / img.width
-
-        setCanvasSize({ width, height, scale })
+        scaleRef.current = width / img.width
+        setCanvasSize({ width, height })
       }
 
       img.onerror = () => {
@@ -119,7 +122,7 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
       img.src = imageUrl
     }, [imageUrl])
 
-    // Initialize Fabric.js canvas after size is calculated
+    // Initialize Fabric.js canvas
     useEffect(() => {
       if (!canvasSize || !canvasRef.current) return
 
@@ -136,30 +139,36 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
           fabricCanvasRef.current.dispose()
         }
 
-        // Create canvas
+        // Create canvas with calculated dimensions
         const canvas = new fabric.Canvas(canvasRef.current!, {
           width: canvasSize.width,
           height: canvasSize.height,
           backgroundColor: '#000',
+          selection: true,
         })
 
         fabricCanvasRef.current = canvas
 
-        // Load image as background
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        img.onload = async () => {
-          if (!mounted) return
+        // Load image and add as first object (acts as background)
+        fabric.FabricImage.fromURL(imageUrl, { crossOrigin: 'anonymous' }).then(async (fabricImage) => {
+          if (!mounted || !fabricImage) return
 
-          const fabricImage = new fabric.FabricImage(img, {
+          // Scale image to fit canvas
+          fabricImage.scale(scaleRef.current)
+          fabricImage.set({
+            left: 0,
+            top: 0,
             selectable: false,
             evented: false,
+            excludeFromExport: false,
           })
-          fabricImage.scale(canvasSize.scale)
-          canvas.backgroundImage = fabricImage
+
+          // Add image as first object
+          canvas.add(fabricImage)
+          canvas.sendObjectToBack(fabricImage)
           canvas.renderAll()
 
-          // Load existing annotations
+          // Load existing annotations on top
           if (existingAnnotation && Object.keys(existingAnnotation).length > 0) {
             try {
               await loadAnnotationsFromJson(canvas, existingAnnotation, fabric)
@@ -174,8 +183,9 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
           canvas.on('object:removed', saveState)
 
           setIsReady(true)
-        }
-        img.src = imageUrl
+        }).catch((err) => {
+          console.error('Failed to load image into fabric:', err)
+        })
       }
 
       initCanvas()
@@ -203,9 +213,12 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
       if (toolMode === 'select') {
         canvas.isDrawingMode = false
         canvas.selection = true
-        canvas.forEachObject((obj) => {
-          obj.selectable = true
-          obj.evented = true
+        canvas.forEachObject((obj, index) => {
+          // Skip the background image (first object)
+          if (index > 0) {
+            obj.selectable = true
+            obj.evented = true
+          }
         })
       } else if (toolMode === 'freehand') {
         canvas.isDrawingMode = true
@@ -318,10 +331,7 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
     }, [toolMode, strokeColor, strokeWidth, saveState, isReady])
 
     return (
-      <div
-        ref={containerRef}
-        className="w-full h-full flex items-center justify-center"
-      >
+      <div className="w-full h-full flex items-center justify-center">
         {!canvasSize && (
           <div className="text-white">Loading image...</div>
         )}
