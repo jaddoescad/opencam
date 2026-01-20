@@ -101,7 +101,7 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
 
     // Single useEffect to handle everything
     useEffect(() => {
-      if (!canvasElRef.current || !containerRef.current) return
+      if (!canvasElRef.current) return
 
       let mounted = true
       let canvas: FabricCanvas | null = null
@@ -128,10 +128,15 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasHandle, AnnotationCan
 
         originalSizeRef.current = { width: imgWidth, height: imgHeight }
 
-        // Get the actual container dimensions
-        const containerRect = containerRef.current!.getBoundingClientRect()
-        const maxW = containerRect.width - 32 // Account for padding
-        const maxH = containerRect.height - 32
+        // Get the actual container dimensions (with fallback to window)
+        let maxW = window.innerWidth - 100
+        let maxH = window.innerHeight - 250
+
+        if (containerRef.current) {
+          const containerRect = containerRef.current.getBoundingClientRect()
+          maxW = containerRect.width - 32
+          maxH = containerRect.height - 32
+        }
 
         // Calculate scale to fit container while maintaining aspect ratio
         const scale = Math.min(maxW / imgWidth, maxH / imgHeight, 1)

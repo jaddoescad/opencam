@@ -121,12 +121,19 @@ export function exportCanvasToDataUrl(
 
 /**
  * Custom serialization to include annotation metadata
- * Canvas is always at original image resolution, so no scaling needed
+ * Excludes the background image (first object) - only saves annotations
  */
 export function serializeCanvas(canvas: Canvas): Record<string, unknown> {
-  const json = canvas.toJSON()
+  const json = canvas.toJSON() as { objects?: unknown[] }
+
+  // Filter out the first object (background image) from serialization
+  // The background image is always re-added when opening the editor
+  const objects = json.objects || []
+  const annotationObjects = objects.slice(1) // Skip first object (background image)
+
   return {
     ...json,
+    objects: annotationObjects,
     version: '1.0',
     fabricVersion: '6.x',
   }
@@ -134,17 +141,29 @@ export function serializeCanvas(canvas: Canvas): Record<string, unknown> {
 
 /**
  * Load annotations from JSON into the canvas
- * No scaling needed since canvas is at original resolution
+ * Only loads annotation objects, preserves existing background image
  */
 export async function loadAnnotationsFromJson(
   canvas: Canvas,
   json: Record<string, unknown>,
-  _fabric: typeof import('fabric')
+  fabric: typeof import('fabric')
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    canvas.loadFromJSON(json, () => {
-      canvas.renderAll()
-      resolve()
-    }).catch(reject)
+  const objects = (json.objects as unknown[]) || []
+
+  if (objects.length === 0) {
+    return
+  }
+
+  // Use enlivenObjects to create Fabric objects from the serialized data
+  const enlivenedObjects = await fabric.util.enlivenObjects(objects)
+
+  // Add each object to the canvas (filter to only FabricObject instances)
+  enlivenedObjects.forEach((obj) => {
+    // Check if it's a valid canvas object (has 'add' capability)
+    if (obj && typeof obj === 'object' && 'left' in obj) {
+      canvas.add(obj as FabricObject)
+    }
   })
+
+  canvas.renderAll()
 }
